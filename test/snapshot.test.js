@@ -10,9 +10,11 @@ async function setup() {
   const root = await mkdtemp(path.join(os.tmpdir(), "pstatus-"));
   const status = path.join(root, "STATUS.md");
   const status2 = path.join(root, "STATUS-2.md");
+  const customCss = path.join(root, "custom.css");
   await writeFile(status, "# Test\n---\n2026-08-20: TODO: Test task. ETA:1h\n");
   await writeFile(status2, "# Test 2\n---\n2026-08-21: WIP: Second task. ETA:2h\n");
-  return { root, status, status2, config: { configPath: path.join(root, "pstatus.json"), files: [{ label: "Configured Label", paths: [status, status2] }, { label: "Missing", paths: [path.join(root, "missing.md")] }], output: path.join(root, "output"), history: null, dashboard: path.join(root, "output", "dashboard.html") } };
+  await writeFile(customCss, ".page-header p { color: rgb(255, 0, 0); }");
+  return { root, status, status2, config: { configPath: path.join(root, "pstatus.json"), files: [{ label: "Configured Label", paths: [status, status2] }, { label: "Missing", paths: [path.join(root, "missing.md")] }], output: path.join(root, "output"), history: null, dashboard: path.join(root, "output", "dashboard.html"), customCss: ".page-header p { color: rgb(255, 0, 0); }", pageTitle: "Custom Title" } };
 }
 
 test("does not replace the snapshot after a status-file read failure by default", async () => {
@@ -33,19 +35,23 @@ test("writes snapshots and dashboard when overwrite on error is enabled", async 
   assert.equal(saved.projects[0].records.length, 2);
   assert.equal(saved.projects[0].records[0].title, "Test task.");
   assert.equal(saved.projects[0].records[1].title, "Second task.");
-  assert.match(await readFile(config.dashboard, "utf8"), /fetch\("pstatus.json"\)/);
+  const dashboard = await readFile(config.dashboard, "utf8");
+  assert.match(dashboard, /fetch\("pstatus.json"\)/);
+  assert.match(dashboard, /Custom Title/);
+  assert.match(dashboard, /rgb\(255, 0, 0\)/);
 });
 
-test("static dashboard embeds data and escapes body HTML before rendering", () => {
-  const html = dashboardHtml({ projects: [{ name: "Example", records: [{ title: "Task", status: "TODO", date: "2026-08-21", body: "<script>x</script>", metadata: {}, checklist: [{ text: "Ship it", done: true }], derived: { checklistTotal: 1, checklistCompleted: 1, checklistPercent: 100 }, source: { file: "/tmp/STATUS.md", line: 4 } }] }] });
+test("static dashboard embeds data and escapes body HTML before rendering", async () => {
+  const html = await dashboardHtml({ projects: [{ name: "Example", records: [{ title: "Task", status: "TODO", date: "2026-08-21", body: "<script>x</script>", metadata: {}, checklist: [{ text: "Ship it", done: true }], derived: { checklistTotal: 1, checklistCompleted: 1, checklistPercent: 100 }, source: { file: "/tmp/STATUS.md", line: 4 } }] }] }, { pageTitle: "PStatus Test", customCss: ":root { --page-bg: #000; }" });
   assert.match(html, /PSTATUS_EMBEDDED_DATA/);
   assert.match(html, /const markdown = text => esc\(text\)/);
   assert.match(html, /No matching items/);
-  assert.match(html, /max-width:350px/);
+  assert.match(html, /max-width: 350px/);
   assert.match(html, /aria-label="Close details"/);
-  assert.match(html, /BLOCKED\{border-top-color:#d92d20/);
+  assert.match(html, /--page-bg/);
   assert.match(html, /document\.querySelector\("#modal"\)\.innerHTML/);
   assert.doesNotMatch(html, /querySelector\("#detail"\)/);
   assert.match(html, /progress-wrap/);
   assert.match(html, /Checklist/);
+  assert.match(html, /PStatus Test/);
 });

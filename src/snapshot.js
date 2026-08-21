@@ -46,7 +46,7 @@ export async function regenerate(config, { overwriteOnError = false } = {}) {
   if (config.history) await writeJson(path.join(config.history, `${snapshot.generated.replace(/[:.]/g, "").replace("Z", "Z")}.json`), snapshot);
   if (config.dashboard && !/^https?:\/\//i.test(config.dashboard)) {
     await mkdir(path.dirname(config.dashboard), { recursive: true });
-    await writeFile(config.dashboard, dashboardHtml());
+      await writeFile(config.dashboard, await dashboardHtml(null, config));
   }
   return { snapshot, warnings: [...warnings, ...failures] };
 }

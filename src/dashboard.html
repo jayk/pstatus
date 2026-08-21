@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{PAGE_TITLE}}</title>
+  <style>{{STYLES}}</style>
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <h1>{{PAGE_TITLE}}</h1>
+      <p>Cross-project status dashboard</p>
+    </header>
+    <div id="controls">
+      <input id="search" aria-label="Search" placeholder="Search">
+      <div class="eta-controls">
+        <span>ETA:</span>
+        <button data-eta="">Any</button>
+        <button data-eta="60">&lt;= 1 hour</button>
+        <button data-eta="120">&lt;= 2 hours</button>
+        <button data-eta="240">&lt;= 4 hours</button>
+      </div>
+      <label class="toggle"><input id="done" type="checkbox"> Show completed items</label>
+      <p id="error" role="alert"></p>
+    </div>
+    <div id="board"></div>
+  </main>
+  <dialog id="modal"></dialog>
+  {{EMBEDDED_DATA}}
+  <script>{{SCRIPT}}</script>
+</body>
+</html>

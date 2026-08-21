@@ -1,3 +1,7 @@
+import path from "node:path";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
 const script = String.raw`
 const embedded = window.PSTATUS_EMBEDDED_DATA;
 const loadData = () => embedded ? Promise.resolve(embedded) : fetch("pstatus.json").then(response => {
@@ -31,7 +35,24 @@ function render(snapshot) {
 loadData().then(render).catch(error => document.querySelector("#error").textContent = error.message);
 `;
 
-export function dashboardHtml(snapshot = null) {
-  const data = snapshot ? `<script>window.PSTATUS_EMBEDDED_DATA=${JSON.stringify(snapshot).replace(/</g, "\\u003c")}</script>` : "";
-  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Project Status</title><style>body{font:16px system-ui;margin:2rem;background:#f4f1eb;color:#222}input,button{font:inherit;padding:.5rem}#controls{display:grid;gap:.75rem;max-width:50rem}.active{background:#263f7a;color:#fff}#error{color:#a00;min-height:1.5em}#board{display:flex;gap:1rem;overflow:auto;margin-top:1.5rem}.column{background:#fff;border-radius:.5rem;padding:1rem;box-sizing:border-box;flex:0 0 min(350px,calc(100vw - 4rem));max-width:350px}.card{display:block;width:100%;text-align:left;margin:.75rem 0;border:1px solid #c7c7c7;border-top:6px solid;padding:.75rem;background:#fff;border-radius:.4rem;box-shadow:0 1px 2px #0002}.BLOCKED{border-top-color:#d92d20}.WIP{border-top-color:#12b76a}.TODO{border-top-color:#fdb022}.DONE{border-top-color:#2e90fa}.card small{display:block;margin-top:.4rem}.progress-wrap{margin-top:.6rem}.progress-label{font-size:.8rem;color:#475467}.progress{height:.45rem;background:#e4e7ec;border-radius:999px;overflow:hidden;margin-top:.25rem}.progress span{display:block;height:100%;background:#2e90fa}.empty{color:#667085;font-style:italic}dialog{position:relative;max-width:42rem;border:0;border-radius:.5rem;box-shadow:0 12px 32px #0005;padding:1.5rem}dialog::backdrop{background:#0008}#close{position:absolute;top:.5rem;right:.5rem;border:0;background:transparent;font-size:1.75rem;line-height:1;cursor:pointer}.source{font-size:.875rem;color:#667085}.checklist ul{list-style:none;padding:0}.checklist li{display:flex;gap:.5rem;align-items:flex-start;margin:.35rem 0}.checklist li.done{color:#067647}.checklist .mark{width:1.25rem;display:inline-block;line-height:1.2}dt{font-weight:bold}dd{margin:0 0 .5rem}article{line-height:1.5}</style><main><h1>Project Status</h1><div id="controls"><input id="search" aria-label="Search" placeholder="Search"><div>ETA: <button data-eta="">Any</button> <button data-eta="60">&lt; 1 hour</button> <button data-eta="120">&lt; 2 hours</button> <button data-eta="240">&lt; 4 hours</button></div><label><input id="done" type="checkbox"> Show completed items</label><p id="error" role="alert"></p></div><div id="board"></div></main><dialog id="modal"></dialog>${data}<script>${script}</script></html>`;
+const srcDir = path.dirname(fileURLToPath(import.meta.url));
+const assetPromise = Promise.all([
+  readFile(path.join(srcDir, "dashboard.html"), "utf8"),
+  readFile(path.join(srcDir, "dashboard.css"), "utf8")
+]).then(([template, css]) => ({ template, css }));
+
+function escapeReplacement(value) {
+  return value.replaceAll("$", "$$$$");
+}
+
+export async function dashboardHtml(snapshot = null, config = {}) {
+  const { template, css } = await assetPromise;
+  const embeddedData = snapshot ? `<script>window.PSTATUS_EMBEDDED_DATA=${JSON.stringify(snapshot).replace(/</g, "\\u003c")}</script>` : "";
+  const pageTitle = config.pageTitle || "PStatus";
+  const customCss = config.customCss || "";
+  return template
+    .replaceAll("{{PAGE_TITLE}}", escapeReplacement(pageTitle))
+    .replace("{{STYLES}}", `${css}\n${customCss}`)
+    .replace("{{EMBEDDED_DATA}}", embeddedData)
+    .replace("{{SCRIPT}}", script);
 }

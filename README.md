@@ -19,13 +19,17 @@ Create `pstatus.json` in the working directory, point `PSTATUS_CONFIG` at a conf
   },
   "output": "./pstatus-output",
   "history": "./pstatus-output/history",
-  "dashboard": "./pstatus-output/dashboard.html"
+  "dashboard": "./pstatus-output/dashboard.html",
+  "custom_css": "./pstatus-theme.css",
+  "page_title": "PStatus"
 }
 ```
 
 `history` and `dashboard` are optional. A dashboard can instead be an `http` or `https` URL for `pstatus -o`; in that case, serve the generated dashboard and `pstatus.json` yourself from the same static-server directory.
 
 Each `files` entry must be an array, even when a project has only one status file. Multiple files under the same label are merged into one project column and one snapshot project entry.
+
+The dashboard HTML and base CSS now live in `src/dashboard.html` and `src/dashboard.css`. `pstatus` composes the final generated dashboard from those source files, your optional `custom_css`, and either embedded or fetched snapshot data.
 
 For a local dashboard path, regeneration writes the dynamic dashboard there. Serve that directory alongside `pstatus.json` with a static HTTP server.
 

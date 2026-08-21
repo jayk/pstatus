@@ -43,6 +43,8 @@ export async function loadConfig({ cwd = process.cwd(), environment = process.en
     }),
     output: resolve(raw.output),
     history: raw.history ? resolve(raw.history) : null,
-    dashboard: raw.dashboard ? (/^https?:\/\//i.test(raw.dashboard) ? raw.dashboard : resolve(raw.dashboard)) : null
+    dashboard: raw.dashboard ? (/^https?:\/\//i.test(raw.dashboard) ? raw.dashboard : resolve(raw.dashboard)) : null,
+    customCss: raw.custom_css ? await readFile(resolve(raw.custom_css), "utf8") : "",
+    pageTitle: raw.page_title || "PStatus"
   };
 }
