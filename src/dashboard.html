@@ -9,22 +9,27 @@
 <body>
   <main class="page">
     <header class="page-header">
-      <h1>{{PAGE_TITLE}}</h1>
-      <p>Cross-project status dashboard</p>
+      <h1>{{PAGE_TITLE}} <span>Cross-project status dashboard</span></h1>
     </header>
     <div id="controls">
       <input id="search" aria-label="Search" placeholder="Search">
-      <div class="eta-controls">
-        <span>ETA:</span>
-        <button data-eta="">Any</button>
-        <button data-eta="60">&lt;= 1 hour</button>
-        <button data-eta="120">&lt;= 2 hours</button>
-        <button data-eta="240">&lt;= 4 hours</button>
+      <div class="filter-row">
+        <div class="eta-controls">
+          <span>ETA:</span>
+          <button data-eta="">Any</button>
+          <button data-eta="60">&lt;= 1h</button>
+          <button data-eta="120">&lt;= 2h</button>
+          <button data-eta="240">&lt;= 4h</button>
+        </div>
+        <label class="toggle"><input id="done" type="checkbox"> Show completed items</label>
       </div>
-      <label class="toggle"><input id="done" type="checkbox"> Show completed items</label>
       <p id="error" role="alert"></p>
     </div>
-    <div id="board"></div>
+    <div class="board-chrome">
+      <div id="board-indicator-left" class="board-indicator" aria-hidden="true">&#x2190;</div>
+      <div id="board-indicator-right" class="board-indicator" aria-hidden="true">&#x2192;</div>
+      <div id="board"></div>
+    </div>
   </main>
   <dialog id="modal"></dialog>
   {{EMBEDDED_DATA}}

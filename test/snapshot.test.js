@@ -54,4 +54,8 @@ test("static dashboard embeds data and escapes body HTML before rendering", asyn
   assert.match(html, /progress-wrap/);
   assert.match(html, /Checklist/);
   assert.match(html, /PStatus Test/);
+  assert.match(html, /board-indicator-left/);
+  assert.match(html, /board-indicator-right/);
+  assert.match(html, /&#x2190;|←/);
+  assert.match(html, /&#x2192;|→/);
 });
