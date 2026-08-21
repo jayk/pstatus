@@ -1,0 +1,15 @@
+{
+  "name": "pstatus",
+  "version": "1.0.0",
+  "description": "Local project status aggregator",
+  "type": "module",
+  "bin": {
+    "pstatus": "bin/pstatus.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
