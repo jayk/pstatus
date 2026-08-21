@@ -204,11 +204,15 @@ function createBoardController(snapshot) {
     });
   }
 
-  function show(record, project) {
-    modal.innerHTML = renderDetail(record, project);
-    modal.showModal();
-    document.querySelector("#close").onclick = () => modal.close();
-  }
+    function show(record, project) {
+      modal.innerHTML = renderDetail(record, project);
+      modal.classList.remove("dialog-tall");
+      modal.showModal();
+      if (modal.scrollHeight + 16 > window.innerHeight) {
+        modal.classList.add("dialog-tall");
+      }
+      document.querySelector("#close").onclick = () => modal.close();
+    }
 
   function bindCards() {
     board.querySelectorAll(".card").forEach((card) => {
