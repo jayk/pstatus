@@ -17,30 +17,34 @@ async function writeJson(file, value) {
 
 export async function regenerate(config, { overwriteOnError = false } = {}) {
   const warnings = [], projects = [], failures = [];
-  await Promise.all(config.files.map(async ({ label, paths }) => {
-    const records = [];
-    const loadedFiles = [];
-    await Promise.all(paths.map(async (file) => {
+  await Promise.all(config.files.map(async ({ label, paths, displayPaths }) => {
+    const fileResults = await Promise.all(paths.map(async (file, index) => {
       try {
         const [content, info] = await Promise.all([readFile(file, "utf8"), stat(file)]);
-        const project = parseStatusFile(content, file, warnings, { mtime: info.mtime, projectName: label });
-        if (project) {
-          records.push(...project.records);
-          loadedFiles.push(file);
-        }
-      } catch (error) { failures.push(`${file}: ${error.message}`); }
+        const project = parseStatusFile(content, displayPaths[index], warnings, { mtime: info.mtime, projectName: label });
+        return project ? { file, displayPath: displayPaths[index], project } : null;
+      } catch (error) {
+        failures.push(`${displayPaths[index]}: ${error.message}`);
+        return null;
+      }
     }));
+
+    const loadedFiles = fileResults.filter(Boolean);
     if (loadedFiles.length) {
+      const records = loadedFiles.flatMap(({ project }) => project.records);
       projects.push({
         name: label,
-        statusFile: loadedFiles[0],
-        statusFiles: paths,
-        records: records.sort((a, b) => loadedFiles.indexOf(a.source.file) - loadedFiles.indexOf(b.source.file) || a.source.line - b.source.line)
+        statusFile: loadedFiles[0].displayPath,
+        statusFiles: loadedFiles.map(({ displayPath }) => displayPath),
+        records: records.sort((a, b) => {
+          const fileOrder = loadedFiles.findIndex(({ displayPath }) => displayPath === a.source.file) - loadedFiles.findIndex(({ displayPath }) => displayPath === b.source.file);
+          return fileOrder || a.source.line - b.source.line;
+        })
       });
     }
   }));
   if (projects.length === 0) throw new Error(`No status files loaded.\n${[...warnings, ...failures].join("\n")}`);
-  const snapshot = { generated: new Date().toISOString(), config: config.configPath, projects: projects.sort((a, b) => config.files.findIndex((item) => item.label === a.name) - config.files.findIndex((item) => item.label === b.name)) };
+  const snapshot = { generated: new Date().toISOString(), config: config.configDisplayPath, projects: projects.sort((a, b) => config.files.findIndex((item) => item.label === a.name) - config.files.findIndex((item) => item.label === b.name)) };
   if (failures.length && !overwriteOnError) return { snapshot: null, warnings: [...warnings, ...failures, "Snapshot was not replaced because one or more files failed to load. Use --overwrite-on-error to replace it."] };
   await writeJson(path.join(config.output, "pstatus.json"), snapshot);
   if (config.history) await writeJson(path.join(config.history, `${snapshot.generated.replace(/[:.]/g, "").replace("Z", "Z")}.json`), snapshot);
