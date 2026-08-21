@@ -2,6 +2,10 @@ function metadataText(metadata) {
   return Object.entries(metadata).flatMap(([key, value]) => [key, ...(Array.isArray(value) ? value : [value])]);
 }
 
+function checklistText(checklist = []) {
+  return checklist.flatMap((item) => [item.text, item.done ? "done" : "todo"]);
+}
+
 function compile(value) {
   try {
     return new RegExp(value, "i");
@@ -26,11 +30,11 @@ export function filterRecords(snapshot, terms = [], { includeDone = false, etaLi
       return (record, project) => fieldValue(record, project, name).some((value) => regex.test(String(value)));
     }
     const regex = compile(term);
-    return (record, project) => [project, record.status, record.title, record.body, record.date, ...metadataText(record.metadata)]
+    return (record, project) => [project, record.status, record.title, record.body, record.date, ...metadataText(record.metadata), ...checklistText(record.checklist)]
       .some((value) => regex.test(String(value)));
   });
   return snapshot.projects.flatMap((project) => project.records
-    .filter((record) => (includeDone || record.status !== "DONE") && (etaLimit === null || record.derived.etaMinutes < etaLimit))
+    .filter((record) => (includeDone || record.status !== "DONE") && (etaLimit === null || record.derived.etaMinutes <= etaLimit))
     .filter((record) => predicates.every((predicate) => predicate(record, project.name)))
     .map((record) => ({ project: project.name, ...record })));
 }

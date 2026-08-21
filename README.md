@@ -8,10 +8,15 @@ Create `pstatus.json` in the working directory, point `PSTATUS_CONFIG` at a conf
 
 ```json
 {
-  "files": [
-    "../project-a/STATUS.md",
-    "../project-b/STATUS.md"
-  ],
+  "files": {
+    "Project A": [
+      "../project-a/STATUS.md"
+    ],
+    "Project B": [
+      "../project-b/STATUS.md",
+      "../project-b/STATUS-extra.md"
+    ]
+  },
   "output": "./pstatus-output",
   "history": "./pstatus-output/history",
   "dashboard": "./pstatus-output/dashboard.html"
@@ -19,6 +24,8 @@ Create `pstatus.json` in the working directory, point `PSTATUS_CONFIG` at a conf
 ```
 
 `history` and `dashboard` are optional. A dashboard can instead be an `http` or `https` URL for `pstatus -o`; in that case, serve the generated dashboard and `pstatus.json` yourself from the same static-server directory.
+
+Each `files` entry must be an array, even when a project has only one status file. Multiple files under the same label are merged into one project column and one snapshot project entry.
 
 For a local dashboard path, regeneration writes the dynamic dashboard there. Serve that directory alongside `pstatus.json` with a static HTTP server.
 
@@ -52,4 +59,40 @@ Queries use case-insensitive regular expressions. Plain terms search the project
 Explain the setup and query syntax.
 ```
 
-Supported statuses are `BLOCKED`, `WIP`, `TODO`, and `DONE`. Metadata is case-insensitive and normalized to lowercase in the snapshot. Repeated metadata keys become arrays. The dashboard escapes all body HTML before applying its small Markdown renderer.
+Supported statuses are `BLOCKED`, `WIP`, `TODO`, and `DONE`. Metadata is case-insensitive and normalized to lowercase in the snapshot. Repeated metadata keys become arrays. Project labels come from the configuration file's `files` object keys. The dashboard escapes all body HTML before applying its small Markdown renderer.
+
+## Checklists
+
+`pstatus` supports read-only checklists in both record styles.
+
+For a normal dated record, any top-level checklist items in the body are extracted for progress display:
+
+```markdown
+---
+2026-08-20: TODO: Ship parser update. ETA:1h
+
+- [x] Write tests.
+- [ ] Update docs.
+```
+
+For an alternate checklist-only section, each top-level checklist item becomes a task record and its indented checklist items become that task's checklist:
+
+```markdown
+---
+- [x] Align node server configuration with the shipped config files.
+  - [x] Decide whether the node server should use `identity_file`.
+  - [x] Update the shipped examples.
+
+- [ ] Implement the missing node network abstractions.
+  - [ ] Add `peerLink.js`.
+  - [ ] Add `wsPeerLink.js`.
+```
+
+Checklist-only records derive their status as follows:
+
+- any title or checklist item containing `BLOCKED` -> `BLOCKED`
+- all checklist items checked -> `DONE`
+- no checklist items checked -> `TODO`
+- otherwise -> `WIP`
+
+If a checklist-only record has no explicit date, `pstatus` uses the source file mtime as the record date. Nested checklist items deeper than one level are ignored by `pstatus` processing.

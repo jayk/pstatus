@@ -24,10 +24,59 @@ Body with **Markdown** and <script>unsafe</script>.
   assert.equal(project.records[0].body, "Body with **Markdown** and <script>unsafe</script>.");
 });
 
-test("warns and ignores malformed records and files without a heading", () => {
+test("extracts checklist progress from the body of a dated record", () => {
+  const project = parseStatusFile(`# Example Project
+
+---
+2026-08-20: TODO: Ship parser update. ETA:1h
+
+- [x] Write tests.
+- [ ] Update docs.
+  - [x] Nested detail should be ignored.
+`, "/tmp/STATUS.md", []);
+  assert.deepEqual(project.records[0].checklist, [
+    { done: true, text: "Write tests." },
+    { done: false, text: "Update docs." }
+  ]);
+  assert.deepEqual(project.records[0].derived, {
+    etaMinutes: 60,
+    checklistTotal: 2,
+    checklistCompleted: 1,
+    checklistPercent: 50,
+    checklistHasBlockedItem: false
+  });
+});
+
+test("parses checklist-only sections into multiple records with derived status", () => {
+  const project = parseStatusFile(`# Example Project
+
+---
+- [x] Align node server configuration with the shipped config files.
+  - [x] Decide whether the node server should use identity_file.
+  - [x] Update shipped examples.
+
+- [ ] Implement the missing node network abstractions.
+  - [ ] Add peerLink.js.
+  - [ ] Add wsPeerLink.js.
+
+- [ ] Waiting on upstream BLOCKED API decision.
+  - [ ] Follow up with platform team.
+`, "/tmp/STATUS.md", [], { mtime: "2026-08-21T17:00:00Z" });
+  assert.equal(project.records.length, 3);
+  assert.deepEqual(project.records.map((record) => record.status), ["DONE", "TODO", "BLOCKED"]);
+  assert.deepEqual(project.records[0].checklist, [
+    { done: true, text: "Decide whether the node server should use identity_file." },
+    { done: true, text: "Update shipped examples." }
+  ]);
+  assert.equal(project.records[1].date, "2026-08-21");
+  assert.equal(project.records[2].derived.checklistHasBlockedItem, false);
+});
+
+test("ignores malformed records and no longer requires a heading for project naming", () => {
   const warnings = [];
-  assert.equal(parseStatusFile("---\nnot a record", "/tmp/a.md", warnings), null);
-  assert.match(warnings[0], /missing level-1/);
+  const fallbackProject = parseStatusFile("---\nnot a record", "/tmp/a.md", warnings);
+  assert.equal(fallbackProject.name, "/tmp/a.md");
+  assert.equal(fallbackProject.records.length, 0);
   const project = parseStatusFile("# Project\n---\n2026-02-30: TODO: impossible", "/tmp/b.md", warnings);
   assert.equal(project.records.length, 0);
   assert.match(warnings.at(-1), /invalid date or status/);

@@ -1,5 +1,5 @@
 import path from "node:path";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { parseStatusFile } from "./parser.js";
 import { dashboardHtml } from "./dashboard.js";
 
@@ -17,14 +17,30 @@ async function writeJson(file, value) {
 
 export async function regenerate(config, { overwriteOnError = false } = {}) {
   const warnings = [], projects = [], failures = [];
-  await Promise.all(config.files.map(async (file) => {
-    try {
-      const project = parseStatusFile(await readFile(file, "utf8"), file, warnings);
-      if (project) projects.push(project);
-    } catch (error) { failures.push(`${file}: ${error.message}`); }
+  await Promise.all(config.files.map(async ({ label, paths }) => {
+    const records = [];
+    const loadedFiles = [];
+    await Promise.all(paths.map(async (file) => {
+      try {
+        const [content, info] = await Promise.all([readFile(file, "utf8"), stat(file)]);
+        const project = parseStatusFile(content, file, warnings, { mtime: info.mtime, projectName: label });
+        if (project) {
+          records.push(...project.records);
+          loadedFiles.push(file);
+        }
+      } catch (error) { failures.push(`${file}: ${error.message}`); }
+    }));
+    if (loadedFiles.length) {
+      projects.push({
+        name: label,
+        statusFile: loadedFiles[0],
+        statusFiles: paths,
+        records: records.sort((a, b) => loadedFiles.indexOf(a.source.file) - loadedFiles.indexOf(b.source.file) || a.source.line - b.source.line)
+      });
+    }
   }));
   if (projects.length === 0) throw new Error(`No status files loaded.\n${[...warnings, ...failures].join("\n")}`);
-  const snapshot = { generated: new Date().toISOString(), config: config.configPath, projects: projects.sort((a, b) => config.files.indexOf(a.statusFile) - config.files.indexOf(b.statusFile)) };
+  const snapshot = { generated: new Date().toISOString(), config: config.configPath, projects: projects.sort((a, b) => config.files.findIndex((item) => item.label === a.name) - config.files.findIndex((item) => item.label === b.name)) };
   if (failures.length && !overwriteOnError) return { snapshot: null, warnings: [...warnings, ...failures, "Snapshot was not replaced because one or more files failed to load. Use --overwrite-on-error to replace it."] };
   await writeJson(path.join(config.output, "pstatus.json"), snapshot);
   if (config.history) await writeJson(path.join(config.history, `${snapshot.generated.replace(/[:.]/g, "").replace("Z", "Z")}.json`), snapshot);

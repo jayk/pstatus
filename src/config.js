@@ -19,8 +19,8 @@ export async function loadConfig({ cwd = process.cwd(), environment = process.en
   } catch (error) {
     throw new Error(`Invalid configuration ${configPath}: ${error.message}`);
   }
-  if (!Array.isArray(raw.files) || raw.files.length === 0) {
-    throw new Error("Configuration requires a non-empty files array.");
+  if (!raw.files || typeof raw.files !== "object" || Array.isArray(raw.files) || Object.keys(raw.files).length === 0) {
+    throw new Error("Configuration requires a non-empty files object mapping labels to arrays of paths.");
   }
   if (typeof raw.output !== "string" || raw.output.length === 0) {
     throw new Error("Configuration requires an output directory.");
@@ -30,9 +30,16 @@ export async function loadConfig({ cwd = process.cwd(), environment = process.en
   const resolve = (value) => path.resolve(base, value);
   return {
     configPath,
-    files: raw.files.map((file) => {
-      if (typeof file !== "string" || file.length === 0) throw new Error("Configuration files entries must be paths.");
-      return resolve(file);
+    files: Object.entries(raw.files).map(([label, file]) => {
+      if (typeof label !== "string" || label.length === 0) throw new Error("Configuration file labels must be non-empty strings.");
+      if (!Array.isArray(file) || file.length === 0) throw new Error("Configuration file entries must be non-empty arrays of paths.");
+      return {
+        label,
+        paths: file.map((item) => {
+          if (typeof item !== "string" || item.length === 0) throw new Error("Configuration file paths must be non-empty strings.");
+          return resolve(item);
+        })
+      };
     }),
     output: resolve(raw.output),
     history: raw.history ? resolve(raw.history) : null,
