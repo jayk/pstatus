@@ -21,7 +21,19 @@ Body with **Markdown** and <script>unsafe</script>.
   assert.deepEqual(project.records[0].metadata, { eta: "2h30m", type: "research", tag: ["one", "two"] });
   assert.equal(project.records[0].derived.etaMinutes, 150);
   assert.equal(project.records[0].source.line, 4);
-  assert.equal(project.records[0].body, "Body with **Markdown** and <script>unsafe</script>.");
+  assert.equal(project.records[0].body, "Body with **Markdown** and unsafe.");
+});
+
+test("strips html from titles, bodies, and checklist items before storing records", () => {
+  const project = parseStatusFile(`---
+2026-08-20: TODO: Fix <b>markup</b> ETA:1h
+
+<div>Body</div> text.
+- [ ] Review <em>output</em>.
+`, "/tmp/STATUS.md", [], { projectName: "Example" });
+  assert.equal(project.records[0].title, "Fix markup");
+  assert.equal(project.records[0].body, "Body text.\n- [ ] Review output.");
+  assert.deepEqual(project.records[0].checklist, [{ done: false, text: "Review output." }]);
 });
 
 test("extracts checklist progress from the body of a dated record", () => {

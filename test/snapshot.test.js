@@ -12,7 +12,7 @@ async function setup() {
   const status2 = path.join(root, "STATUS-2.md");
   const customCss = path.join(root, "custom.css");
   const rootName = path.basename(root);
-  await writeFile(status, "# Test\n---\n2026-08-20: TODO: Test task. ETA:1h\n");
+  await writeFile(status, "# Test\n---\n2026-08-20: TODO: Test <b>task</b>. ETA:1h\n\n<div>unsafe</div> body\n");
   await writeFile(status2, "# Test 2\n---\n2026-08-21: WIP: Second task. ETA:2h\n");
   await writeFile(customCss, ".page-header p { color: rgb(255, 0, 0); }");
   return {
@@ -57,10 +57,12 @@ test("writes snapshots and dashboard when overwrite on error is enabled", async 
   assert.deepEqual(saved.projects[0].statusFiles, config.files[0].displayPaths);
   assert.equal(saved.projects[0].records.length, 2);
   assert.equal(saved.projects[0].records[0].title, "Test task.");
+  assert.equal(saved.projects[0].records[0].body, "unsafe body");
   assert.equal(saved.projects[0].records[1].title, "Second task.");
   assert.equal(saved.projects[0].records[0].source.file, `tmp/${rootName}/STATUS.md`);
   assert.equal(saved.projects[0].records[1].source.file, `tmp/${rootName}/STATUS-2.md`);
   assert.doesNotMatch(JSON.stringify(saved), new RegExp(root.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(JSON.stringify(saved), /<div>|<b>/);
   const dashboard = await readFile(config.dashboard, "utf8");
   assert.match(dashboard, /fetch\("pstatus.json"\)/);
   assert.match(dashboard, /Custom Title/);

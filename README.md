@@ -214,6 +214,12 @@ ETA:1h type:write priority:high
 
 Keep metadata values on one token. Do not put spaces in a metadata value.
 
+### HTML in source files
+
+`pstatus` removes raw HTML tags from titles, bodies, and checklist text when it builds `pstatus.json`.
+
+Use plain text or Markdown in `STATUS.md` files. Do not rely on inline HTML.
+
 ### ETA
 
 Use ETA when you want to ask, “What can I finish in the time I have?”
@@ -508,6 +514,8 @@ Recognized ETA values become normalized minutes in derived data.
 ### Error rules
 
 Malformed records are warned about and ignored.
+
+Raw HTML is removed before data is written to the snapshot.
 
 ## Reference: Dashboard
 

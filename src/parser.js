@@ -1,5 +1,12 @@
 const STATUS_VALUES = new Set(["BLOCKED", "WIP", "TODO", "DONE"]);
 
+function stripHtml(text) {
+  return text
+    .replace(/<!--[^]*?-->/g, "")
+    .replace(/<[^>]+>/g, "")
+    .trim();
+}
+
 function metadataValue(metadata, name) {
   const value = metadata[name];
   return Array.isArray(value) ? value.at(-1) : value;
@@ -22,7 +29,7 @@ function extractChecklist(text) {
   for (const line of text.split("\n")) {
     if (/^\s+- \[[ xX]\] /.test(line)) continue;
     const match = /^- \[([ xX])\] (.+)$/.exec(line.replace(/\r$/, ""));
-    if (match) checklist.push({ done: /x/i.test(match[1]), text: match[2] });
+    if (match) checklist.push({ done: /x/i.test(match[1]), text: stripHtml(match[2]) });
   }
   return checklist;
 }
@@ -77,7 +84,8 @@ function parseRecord(section, lineOffset, sourceFile, warnings) {
     return null;
   }
   const { title, metadata } = parseMetadata(remainder);
-  if (!title) {
+  const cleanTitle = stripHtml(title);
+  if (!cleanTitle) {
     warnings.push(`${sourceFile}:${lineNumber}: empty title ignored.`);
     return null;
   }
@@ -86,10 +94,10 @@ function parseRecord(section, lineOffset, sourceFile, warnings) {
   const bodyLines = lines.slice(statusIndex + 1);
   while (bodyLines[0]?.trim() === "") bodyLines.shift();
   while (bodyLines.at(-1)?.trim() === "") bodyLines.pop();
-  const body = bodyLines.join("\n");
+  const body = stripHtml(bodyLines.join("\n"));
   const checklist = extractChecklist(body);
   return {
-    date, status, title, body, metadata, checklist,
+    date, status, title: cleanTitle, body, metadata, checklist,
     derived: { ...(etaMinutes === undefined ? {} : { etaMinutes }), ...checklistSummary(checklist) },
     source: { file: sourceFile, line: lineNumber }
   };
@@ -116,17 +124,18 @@ function parseChecklistSection(section, lineOffset, sourceFile, mtime) {
     }
     if (current) current.lines.push(line);
     const checklistItem = /^ {1,3}- \[([ xX])\] (.+)$/.exec(line);
-    if (current && checklistItem) current.checklist.push({ done: /x/i.test(checklistItem[1]), text: checklistItem[2] });
+    if (current && checklistItem) current.checklist.push({ done: /x/i.test(checklistItem[1]), text: stripHtml(checklistItem[2]) });
   }
   if (current) records.push(current);
   return records.map((record) => {
     const checklist = record.checklist;
     const derived = checklistSummary(checklist);
+    const cleanTitle = stripHtml(record.title);
     return {
       date: isoDateFromMtime(mtime),
-      status: checklist.length ? deriveChecklistStatus(record.title, checklist) : /x/i.test(record.lines[0]) ? "DONE" : /\bBLOCKED\b/i.test(record.title) ? "BLOCKED" : "TODO",
-      title: record.title,
-      body: record.lines.slice(1).join("\n").trim(),
+      status: checklist.length ? deriveChecklistStatus(cleanTitle, checklist) : /x/i.test(record.lines[0]) ? "DONE" : /\bBLOCKED\b/i.test(cleanTitle) ? "BLOCKED" : "TODO",
+      title: cleanTitle,
+      body: stripHtml(record.lines.slice(1).join("\n").trim()),
       metadata: {},
       checklist,
       derived,
