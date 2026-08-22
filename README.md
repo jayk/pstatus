@@ -1,5 +1,3 @@
-# pstatus
-
 ## Overview
 
 `pstatus` turns the Markdown task files you already keep in one or more repositories into one usable source of information.
