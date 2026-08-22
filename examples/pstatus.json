@@ -1,0 +1,17 @@
+{
+  "files": {
+    "Docs": [
+      "./docs/STATUS.md"
+    ],
+    "API": [
+      "./api/STATUS.md"
+    ],
+    "Website": [
+      "./website/STATUS.md"
+    ]
+  },
+  "output": "./output",
+  "dashboard": "./output/index.html",
+  "page_title": "Project Status",
+  "source_path_depth": 1
+}
