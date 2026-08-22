@@ -14,12 +14,14 @@ const usage = `pstatus
 Usage:
   pstatus [query terms...]
   pstatus -r [query terms...]
+  pstatus -l
   pstatus -o
   pstatus --static [file.html]
   pstatus --static [file.html] --static-project <label>
 
 Options:
   -c <config.json>       Use a specific configuration file
+  -l                     List project query tokens
   -r                     Regenerate the snapshot from source files
   -o                     Open the configured dashboard
   --static [file.html]   Write a self-contained static dashboard
@@ -36,6 +38,7 @@ Notes:
 
 Examples:
   pstatus
+  pstatus -l
   pstatus -r
   pstatus type:write
   pstatus -c work-config.json -r status:WIP
@@ -54,6 +57,7 @@ function printAndExit(text) {
 function createDefaultOptions() {
   return {
     configFile: null,
+    listProjects: false,
     open: false,
     overwriteOnError: false,
     regenerate: false,
@@ -76,6 +80,11 @@ function parseArgs(argv) {
 
     if (arg === "-o") {
       options.open = true;
+      continue;
+    }
+
+    if (arg === "-l") {
+      options.listProjects = true;
       continue;
     }
 
@@ -122,7 +131,7 @@ function formatEta(metadata) {
 }
 
 function printSummary(snapshot, terms) {
-  const records = filterRecords(snapshot, terms);
+  const records = sortRecordsForCli(filterRecords(snapshot, terms));
 
   if (!records.length) {
     console.log("No matching actionable items.");
@@ -131,6 +140,30 @@ function printSummary(snapshot, terms) {
 
   for (const record of records) {
     console.log(`${record.project}\t${record.status}\t${record.title}${formatEta(record.metadata)}`);
+  }
+}
+
+function sortRecordsForCli(records) {
+  const grouped = new Map();
+
+  for (const record of records) {
+    const group = grouped.get(record.project) ?? [];
+    group.push(record);
+    grouped.set(record.project, group);
+  }
+
+  return [...grouped.values()].flatMap((group) => group.toSorted((left, right) => {
+    const leftEta = left.derived.etaMinutes ?? Number.POSITIVE_INFINITY;
+    const rightEta = right.derived.etaMinutes ?? Number.POSITIVE_INFINITY;
+    if (leftEta !== rightEta) return leftEta - rightEta;
+
+    return left.title.localeCompare(right.title);
+  }));
+}
+
+function printProjectTokens(snapshot) {
+  for (const project of snapshot.projects) {
+    console.log(`"project:${project.name}"`);
   }
 }
 
@@ -207,6 +240,11 @@ async function main() {
 
   if (options.open) {
     await openDashboard(config);
+  }
+
+  if (options.listProjects) {
+    printProjectTokens(snapshot);
+    return;
   }
 
   if (!options.open && !options.static) {

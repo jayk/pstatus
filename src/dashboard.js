@@ -74,6 +74,12 @@ function regex(value) {
   }
 }
 
+function parseEta(value) {
+  const match = /^(?:(\d+(?:\.\d+)?)h)?(?:(\d+)m)?$/i.exec(value);
+  if (!match || (!match[1] && !match[2])) return undefined;
+  return Math.round((Number(match[1] || 0) * 60) + Number(match[2] || 0));
+}
+
 function searchableValues(record, project) {
   return [
     project,
@@ -92,11 +98,29 @@ function fieldValues(record, project, name) {
   return (Array.isArray(value) ? value : [value]).filter(Boolean);
 }
 
+function matchesEta(record, rawValue) {
+  const exact = rawValue.startsWith("=");
+  const etaValue = exact ? rawValue.slice(1) : rawValue;
+  const etaMinutes = parseEta(etaValue);
+
+  if (etaMinutes === undefined) {
+    const pattern = regex(rawValue);
+    return fieldValues(record, "", "eta").some((value) => pattern.test(value));
+  }
+
+  if (record.derived.etaMinutes === undefined) return false;
+  return exact ? record.derived.etaMinutes === etaMinutes : record.derived.etaMinutes <= etaMinutes;
+}
+
 function matches(record, project, terms) {
   return terms.every((term) => {
     const colon = term.indexOf(":");
     const name = colon > 0 ? term.slice(0, colon).toLowerCase() : null;
-    const pattern = regex(name ? term.slice(colon + 1) : term);
+    const value = name ? term.slice(colon + 1) : term;
+
+    if (name === "eta") return matchesEta(record, value);
+
+    const pattern = regex(value);
 
     if (name) return fieldValues(record, project, name).some((value) => pattern.test(value));
     return searchableValues(record, project).some((value) => pattern.test(value));

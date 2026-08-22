@@ -11,6 +11,10 @@ test("queries metadata and plain terms with AND semantics", () => {
   assert.equal(filterRecords(snapshot, ["vouch", "type:write"]).length, 1);
   assert.equal(filterRecords(snapshot, ["tag:security"]).length, 1);
   assert.equal(filterRecords(snapshot, ["outline"]).length, 1);
+  assert.equal(filterRecords(snapshot, ["eta:2h"]).length, 1);
+  assert.equal(filterRecords(snapshot, ["eta:1h"]).length, 0);
+  assert.equal(filterRecords(snapshot, ["eta:=1.5h"]).length, 1);
+  assert.equal(filterRecords(snapshot, ["eta:=2h"]).length, 0);
   assert.equal(filterRecords(snapshot, ["revocation", "type:code"]).length, 0);
   assert.equal(filterRecords(snapshot, [], { etaLimit: 120 }).length, 1);
   assert.equal(filterRecords(snapshot).length, 1);

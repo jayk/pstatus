@@ -1,15 +1,44 @@
 {
-  "name": "pstatus",
+  "name": "p-status",
   "version": "1.0.0",
-  "description": "Local project status aggregator",
+  "description": "Read Markdown status and todo files across multiple local projects with a CLI, JSON snapshots, and a read-only HTML dashboard.",
+  "license": "BSD-3-Clause",
   "type": "module",
   "bin": {
     "pstatus": "bin/pstatus.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jayk/pstatus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jayk/pstatus/issues"
+  },
+  "homepage": "https://github.com/jayk/pstatus",
+  "keywords": [
+    "status",
+    "project-status",
+    "task-tracking",
+    "dashboard",
+    "kanban",
+    "markdown",
+    "cli",
+    "productivity",
+    "static-html",
+    "snapshot"
+  ],
   "scripts": {
     "test": "node --test"
   },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md"
+  ],
   "engines": {
     "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
