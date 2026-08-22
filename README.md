@@ -2,14 +2,24 @@
 
 ## Overview
 
-`pstatus` helps you see task status across any number of projects.
+`pstatus` turns the Markdown task files you already keep in one or more repositories into one usable source of information.
 
-Use it when you keep local `STATUS.md` files in different repositories and you want one place to see what is blocked, in progress, next, or done. It is designed to help you resume work fast after you switch context.
+You maintain your work in simple local `STATUS.md` or `TODO.md`-style files, close to the code they describe. `pstatus` reads those files across projects, builds a current snapshot, and gives you two ways to use it:
 
-`pstatus` has two main interfaces:
+- query everything from the command line
+- browse everything in a read-only HTML dashboard
 
-- a command-line interface for regeneration and quick queries
-- an HTML dashboard for browsing, filtering, and reading task details
+This makes it easy to work with todos that are normally scattered across multiple repos. Instead of opening projects one by one, you can see what needs attention across all of them in one place and ask practical questions such as:
+
+- What should I work on next?
+- What is blocked?
+- What is already in progress?
+- What can I finish in the next 30 minutes, 1 hour, or 2 hours?
+- Which tasks match a project, tag, status, or other metadata value?
+
+`pstatus` is for people who want to keep task tracking near their code, in Markdown, without moving that information into a separate database or project management system. It supports flexible metadata, works across multiple projects, and makes your existing repo-local task files much easier to browse, filter, and query.
+
+In short: you keep your todos in Markdown, near your code, and `pstatus` turns them into something you can actually use across all your projects.
 
 `pstatus` does not watch your files. It does not update by itself. Your `STATUS.md` files are the source of truth. The generated snapshot and the dashboard change only when you run a CLI command such as `pstatus -r`.
 
