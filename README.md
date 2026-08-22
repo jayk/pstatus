@@ -13,6 +13,8 @@ Use it when you keep local `STATUS.md` files in different repositories and you w
 
 `pstatus` does not watch your files. It does not update by itself. Your `STATUS.md` files are the source of truth. The generated snapshot and the dashboard change only when you run a CLI command such as `pstatus -r`.
 
+![pstatus dashboard screenshot](https://raw.githubusercontent.com/jayk/pstatus/master/examples/pstatus-screenshot.png)
+
 ## Getting Started
 
 This section gives you a complete setup from scratch.
