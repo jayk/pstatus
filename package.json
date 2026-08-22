@@ -1,5 +1,5 @@
 {
-  "name": "p-status",
+  "name": "pstatus-js",
   "version": "1.0.0",
   "description": "Read Markdown status and todo files across multiple local projects with a CLI, JSON snapshots, and a read-only HTML dashboard.",
   "license": "BSD-3-Clause",
