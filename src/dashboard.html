@@ -36,6 +36,75 @@
     </div>
   </main>
   <dialog id="modal"></dialog>
+  <template id="template-column">
+    <section class="column">
+      <h2 class="column-title"></h2>
+      <div class="column-body"></div>
+    </section>
+  </template>
+  <template id="template-card">
+    <button class="card" type="button">
+      <b class="card-status"></b>
+      <span class="card-title"></span>
+      <div class="card-progress-slot"></div>
+      <span class="card-footer">
+        <small class="card-label"></small>
+        <small class="card-eta"></small>
+      </span>
+    </button>
+  </template>
+  <template id="template-progress">
+    <div class="progress-wrap">
+      <div class="progress-label"></div>
+      <div class="progress"><span></span></div>
+    </div>
+  </template>
+  <template id="template-empty-column">
+    <p class="empty">No matching items.</p>
+  </template>
+  <template id="template-detail">
+    <div class="detail-root">
+      <button id="close" aria-label="Close details">&times;</button>
+      <header class="detail-header">
+        <div class="detail-title-block">
+          <p class="detail-status"></p>
+          <h2 class="detail-title"></h2>
+        </div>
+        <div class="detail-eta"></div>
+      </header>
+      <div class="detail-meta">
+        <p class="detail-project"><b>Project:</b> <span class="detail-project-name"></span> <span class="detail-label"></span></p>
+        <p class="detail-date"><b>Date:</b> <span class="detail-date-value"></span></p>
+      </div>
+      <div class="detail-progress-slot"></div>
+      <dl class="detail-metadata"></dl>
+      <section class="checklist detail-checklist">
+        <h3>Checklist</h3>
+        <ul></ul>
+      </section>
+      <article class="detail-body"></article>
+      <p class="source"><b>Source:</b> <span class="detail-source-file"></span>:<span class="detail-source-line"></span></p>
+    </div>
+  </template>
+  <template id="template-checklist-item">
+    <li>
+      <span class="mark"></span>
+      <span class="checklist-text"></span>
+    </li>
+  </template>
+  <template id="template-metadata-item">
+    <div class="metadata-pill">
+      <span class="metadata-key"></span>
+      <span class="metadata-sep">:</span>
+      <span class="metadata-value"></span>
+    </div>
+  </template>
+  <template id="template-detail-eta">
+    <div class="detail-eta-inner">
+      <span>ETA</span>
+      <strong></strong>
+    </div>
+  </template>
   {{EMBEDDED_DATA}}
   <script>{{SCRIPT}}</script>
 </body>

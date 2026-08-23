@@ -42,7 +42,6 @@ input {
 }
 
 .page {
-  max-width: 1600px;
   margin: 0 auto;
   height: calc(100vh - 2rem);
   display: flex;
@@ -328,13 +327,31 @@ dialog {
   width: min(42rem, calc(100vw - 2rem));
   max-width: 42rem;
   padding: 1.5rem;
+  padding-top: 0;
   border: 1px solid var(--panel-border);
+  border-top: 6px solid transparent;
   border-radius: 1rem;
   background: linear-gradient(180deg, #11182b, #0c1323);
   color: var(--text-main);
   box-shadow: var(--shadow);
   overflow-x: hidden;
   overflow-y: visible;
+}
+
+dialog#modal.BLOCKED {
+  border-top-color: var(--danger);
+}
+
+dialog#modal.WIP {
+  border-top-color: var(--success);
+}
+
+dialog#modal.TODO {
+  border-top-color: var(--warning);
+}
+
+dialog#modal.DONE {
+  border-top-color: var(--done);
 }
 
 dialog[open] {
@@ -382,26 +399,9 @@ dialog::backdrop {
   justify-content: space-between;
   margin-top: 0rem;
   margin-bottom: 0.9rem;
-  padding-top: 0.15rem;
+  padding-top: 0.75rem;
   padding-right: 2.5rem;
-  border-top: 6px solid;
   max-width: 96%;
-}
-
-.detail-header.BLOCKED {
-  border-top-color: var(--danger);
-}
-
-.detail-header.WIP {
-  border-top-color: var(--success);
-}
-
-.detail-header.TODO {
-  border-top-color: var(--warning);
-}
-
-.detail-header.DONE {
-  border-top-color: var(--done);
 }
 
 .detail-header h2 {
@@ -426,11 +426,49 @@ dialog::backdrop {
   gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
+  justify-content: space-between;
   margin-bottom: 0.75rem;
 }
 
 .detail-meta p {
   margin: 0;
+}
+
+.detail-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+}
+
+.metadata-pill {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0.24rem 0.55rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: rgba(121, 168, 255, 0.08);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.metadata-key {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.metadata-sep {
+  color: var(--text-subtle);
+}
+
+.metadata-value {
+  color: var(--text-muted);
+}
+
+.detail-date {
+  margin-left: auto;
+  text-align: right;
 }
 
 .source {
@@ -574,6 +612,11 @@ code {
 
   .detail-eta {
     align-items: flex-start;
+    text-align: left;
+  }
+
+  .detail-date {
+    margin-left: 0;
     text-align: left;
   }
 }

@@ -16,8 +16,39 @@ function loadData() {
   });
 }
 
+function template(id) {
+  return document.querySelector(id);
+}
+
+function cloneTemplate(id) {
+  return template(id).content.firstElementChild.cloneNode(true);
+}
+
+function cloneFragment(id) {
+  return template(id).content.cloneNode(true);
+}
+
+function clearChildren(node) {
+  node.replaceChildren();
+}
+
+function setText(root, selector, value) {
+  const node = root.querySelector(selector);
+  if (node) node.textContent = value;
+}
+
+function toggleHidden(node, hidden) {
+  node.hidden = hidden;
+}
+
 function esc(value) {
-  return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
 }
 
 function markdown(text) {
@@ -41,30 +72,35 @@ function checklistText(checklist) {
   return checklist.flatMap((item) => [item.text, item.done ? "done" : "todo"]);
 }
 
-function checklistProgress(record) {
-  if (!record.derived.checklistTotal) return "";
+function createProgressNode(record) {
+  if (!record.derived.checklistTotal) return null;
 
-  return '<div class="progress-wrap"><div class="progress-label">'
-    + esc(record.derived.checklistCompleted)
-    + '/'
-    + esc(record.derived.checklistTotal)
-    + ' complete</div><div class="progress"><span style="width:'
-    + esc(record.derived.checklistPercent)
-    + '%"></span></div></div>';
+  const node = cloneTemplate("#template-progress");
+  setText(
+    node,
+    ".progress-label",
+    record.derived.checklistCompleted + "/" + record.derived.checklistTotal + " complete"
+  );
+  node.querySelector(".progress span").style.width = record.derived.checklistPercent + "%";
+  return node;
 }
 
-function checklistDetails(record) {
-  if (!record.checklist?.length) return "";
+function createChecklistItemNode(item) {
+  const node = cloneTemplate("#template-checklist-item");
+  node.classList.add(item.done ? "done" : "todo");
+  setText(node, ".mark", item.done ? "✅" : "⬜");
+  setText(node, ".checklist-text", item.text);
+  return node;
+}
 
-  const items = record.checklist.map((item) => '<li class="'
-    + (item.done ? 'done' : 'todo')
-    + '"><span class="mark">'
-    + (item.done ? '✅' : '⬜')
-    + '</span> <span>'
-    + esc(item.text)
-    + '</span></li>').join('');
+function createChecklistNode(record) {
+  if (!record.checklist?.length) return null;
 
-  return '<section class="checklist"><h3>Checklist</h3><ul>' + items + '</ul></section>';
+  const node = cloneTemplate("#template-detail").querySelector(".detail-checklist");
+  const list = node.querySelector("ul");
+  clearChildren(list);
+  for (const item of record.checklist) list.append(createChecklistItemNode(item));
+  return node;
 }
 
 function regex(value) {
@@ -89,13 +125,22 @@ function searchableValues(record, project) {
     record.title,
     record.body,
     record.date,
-    ...Object.entries(record.metadata).flatMap(([key, value]) => [key, ...(Array.isArray(value) ? value : [value])]),
+    ...Object.entries(record.metadata).flatMap(([key, value]) => [
+      key,
+      ...(Array.isArray(value) ? value : [value])
+    ]),
     ...checklistText(record.checklist || [])
   ];
 }
 
 function fieldValues(record, project, name) {
-  const fields = { project, label: record.label, status: record.status, title: record.title, date: record.date };
+  const fields = {
+    project,
+    label: record.label,
+    status: record.status,
+    title: record.title,
+    date: record.date
+  };
   const value = name in fields ? fields[name] : record.metadata[name];
   return (Array.isArray(value) ? value : [value]).filter(Boolean);
 }
@@ -111,7 +156,9 @@ function matchesEta(record, rawValue) {
   }
 
   if (record.derived.etaMinutes === undefined) return false;
-  return exact ? record.derived.etaMinutes === etaMinutes : record.derived.etaMinutes <= etaMinutes;
+  return exact
+    ? record.derived.etaMinutes === etaMinutes
+    : record.derived.etaMinutes <= etaMinutes;
 }
 
 function matches(record, project, terms) {
@@ -123,9 +170,10 @@ function matches(record, project, terms) {
     if (name === "eta") return matchesEta(record, value);
 
     const pattern = regex(value);
-
-    if (name) return fieldValues(record, project, name).some((value) => pattern.test(value));
-    return searchableValues(record, project).some((value) => pattern.test(value));
+    if (name) {
+      return fieldValues(record, project, name).some((entry) => pattern.test(entry));
+    }
+    return searchableValues(record, project).some((entry) => pattern.test(entry));
   });
 }
 
@@ -135,76 +183,137 @@ function getTerms(search) {
 
 function filterProjectRecords(project, terms, includeDone, etaLimit) {
   const records = project.records
-    .filter((record) => (includeDone || record.status !== "DONE") && (etaLimit === null || record.derived.etaMinutes <= etaLimit) && matches(record, project.name, terms))
+    .filter((record) => {
+      const etaOk = etaLimit === null || record.derived.etaMinutes <= etaLimit;
+      return (includeDone || record.status !== "DONE")
+        && etaOk
+        && matches(record, project.name, terms);
+    })
     .sort((left, right) => order[left.status] - order[right.status]);
 
   return { ...project, records };
 }
 
-function renderCard(record, projectName, index) {
-  const hasLabel = Boolean(record.label);
-  const hasEta = Boolean(record.metadata.eta);
-  const eta = record.metadata.eta
-    ? '<small class="card-eta">' + esc(Array.isArray(record.metadata.eta) ? record.metadata.eta.join(", ") : record.metadata.eta) + '</small>'
-    : '<small class="card-eta"></small>';
-  const label = record.label ? '<small class="card-label">' + esc(record.label) + '</small>' : '<small class="card-label"></small>';
-  const footer = hasLabel || hasEta ? '<span class="card-footer">' + label + eta + '</span>' : '';
+function createCardNode(record, projectName, index) {
+  const node = cloneTemplate("#template-card");
+  node.classList.add(record.status);
+  node.dataset.project = projectName;
+  node.dataset.index = String(index);
+  setText(node, ".card-status", record.status + ":");
+  setText(node, ".card-title", record.title);
 
-  return '<button class="card '
-    + record.status
-    + '" data-project="'
-    + esc(projectName)
-    + '" data-index="'
-    + index
-    + '"><b>'
-    + esc(record.status)
-    + ':</b> '
-    + esc(record.title)
-    + checklistProgress(record)
-    + footer
-    + '</button>';
+  const progressSlot = node.querySelector(".card-progress-slot");
+  const progress = createProgressNode(record);
+  if (progress) progressSlot.append(progress);
+
+      const label = node.querySelector(".card-label");
+      const eta = node.querySelector(".card-eta");
+      if (record.label) {
+        label.textContent = record.label;
+      } else {
+        label.remove();
+      }
+      toggleHidden(eta, !record.metadata.eta);
+      if (record.metadata.eta) {
+        eta.textContent = Array.isArray(record.metadata.eta)
+          ? record.metadata.eta.join(", ")
+          : record.metadata.eta;
+      }
+
+  const footer = node.querySelector(".card-footer");
+  toggleHidden(footer, !record.label && !record.metadata.eta);
+  return node;
 }
 
-function renderColumn(project) {
-  const content = project.records.length
-    ? project.records.map((record, index) => renderCard(record, project.name, index)).join("")
-    : '<p class="empty">No matching items.</p>';
+function createColumnNode(project) {
+  const node = cloneTemplate("#template-column");
+  setText(node, ".column-title", project.name);
+  if (!project.records.length) node.classList.add("is-empty");
 
-  return '<section class="column' + (project.records.length ? '' : ' is-empty') + '"><h2>' + esc(project.name) + '</h2>' + content + '</section>';
+  const body = node.querySelector(".column-body");
+  clearChildren(body);
+  if (!project.records.length) {
+    body.append(cloneTemplate("#template-empty-column"));
+    return node;
+  }
+
+  project.records.forEach((record, index) => {
+    body.append(createCardNode(record, project.name, index));
+  });
+  return node;
 }
 
-function renderDetail(record, project) {
-  const metadata = Object.entries(record.metadata)
-    .map(([key, value]) => '<dt>' + esc(key) + '</dt><dd>' + esc(Array.isArray(value) ? value.join(", ") : value) + '</dd>')
-    .join("");
-  const label = record.label ? '<span class="detail-label">' + esc(record.label) + '</span>' : '';
-  const eta = record.metadata.eta
-    ? '<div class="detail-eta"><span>ETA <strong>' + esc(Array.isArray(record.metadata.eta) ? record.metadata.eta.join(", ") : record.metadata.eta) + '</strong></span></div>'
-    : '';
+  function appendMetadata(detailNode, record) {
+    const container = detailNode.querySelector(".detail-metadata");
+    clearChildren(container);
+    for (const [key, value] of Object.entries(record.metadata)) {
+      if (key.toLowerCase() === "eta") continue;
+      const fragment = cloneFragment("#template-metadata-item");
+      fragment.querySelector(".metadata-key").textContent = key;
+      fragment.querySelector(".metadata-value").textContent = Array.isArray(value)
+        ? value.join(", ")
+        : value;
+      container.append(fragment);
+    }
+  }
 
-  return '<button id="close" aria-label="Close details">&times;</button><header class="detail-header ' + esc(record.status) + '"><div><p class="detail-status">' + esc(record.status) + '</p><h2>'
-    + esc(record.title)
-    + '</h2></div>'
-    + eta
-    + '</header><div class="detail-meta"><p><b>Project:</b> '
-    + esc(project)
-    + '</p>'
-    + label
-    + '<p><b>Date:</b> '
-    + esc(record.date)
-    + '</p></div>'
-    + checklistProgress(record)
-    + '<dl>'
-    + metadata
-    + '</dl>'
-    + checklistDetails(record)
-    + '<article>'
-    + markdown(bodyWithoutChecklist(record))
-    + '</article><p class="source"><b>Source:</b> '
-    + esc(record.source.file)
-    + ':'
-    + esc(record.source.line)
-    + '</p>';
+function appendChecklist(detailNode, record) {
+  const section = detailNode.querySelector(".detail-checklist");
+  if (!record.checklist?.length) {
+    section.remove();
+    return;
+  }
+
+  const list = section.querySelector("ul");
+  clearChildren(list);
+  for (const item of record.checklist) list.append(createChecklistItemNode(item));
+}
+
+function appendDetailEta(detailNode, record) {
+  const container = detailNode.querySelector(".detail-eta");
+  if (!record.metadata.eta) {
+    clearChildren(container);
+    container.hidden = true;
+    return;
+  }
+
+  container.hidden = false;
+  const node = cloneTemplate("#template-detail-eta");
+  const value = Array.isArray(record.metadata.eta)
+    ? record.metadata.eta.join(", ")
+    : record.metadata.eta;
+  node.querySelector("strong").textContent = value;
+  clearChildren(container);
+  container.append(node);
+}
+
+function createDetailNode(record, project) {
+  const node = cloneTemplate("#template-detail");
+  node.querySelector(".detail-header").classList.add(record.status);
+  setText(node, ".detail-status", record.status);
+  setText(node, ".detail-title", record.title);
+  setText(node, ".detail-project-name", project);
+  setText(node, ".detail-date-value", record.date);
+  setText(node, ".detail-source-file", record.source.file);
+  setText(node, ".detail-source-line", record.source.line);
+
+      const label = node.querySelector(".detail-label");
+      if (record.label) {
+        label.textContent = record.label;
+      } else {
+        label.remove();
+      }
+
+  appendDetailEta(node, record);
+  appendMetadata(node, record);
+  appendChecklist(node, record);
+
+  const progressSlot = node.querySelector(".detail-progress-slot");
+  const progress = createProgressNode(record);
+  if (progress) progressSlot.append(progress);
+
+  node.querySelector(".detail-body").innerHTML = markdown(bodyWithoutChecklist(record));
+  return node;
 }
 
 function createBoardController(snapshot) {
@@ -221,12 +330,41 @@ function createBoardController(snapshot) {
   let currentColumns = [];
 
   function scrollByColumn(direction) {
-    const column = board.querySelector(".column");
-    if (!column) return;
+    const positions = getColumnPositions();
+    if (!positions.length) return;
 
-    const styles = window.getComputedStyle(board);
-    const gap = Number.parseFloat(styles.columnGap || styles.gap || "0") || 0;
-    board.scrollBy({ left: direction * (column.getBoundingClientRect().width + gap), behavior: "smooth" });
+    const epsilon = 8;
+    const current = board.scrollLeft;
+    let targetIndex = 0;
+
+    if (direction > 0) {
+      targetIndex = positions.findIndex((position) => position > current + epsilon);
+      if (targetIndex === -1) targetIndex = positions.length - 1;
+    } else {
+      const exactIndex = positions.findIndex((position) => Math.abs(position - current) <= epsilon);
+      if (exactIndex !== -1) {
+        targetIndex = Math.max(0, exactIndex - 1);
+      } else {
+        targetIndex = positions.findIndex((position) => position > current + epsilon);
+        if (targetIndex === -1) {
+          targetIndex = positions.length - 1;
+        } else {
+          targetIndex = Math.max(0, targetIndex - 1);
+        }
+      }
+    }
+
+    board.scrollTo({
+      left: positions[targetIndex],
+      behavior: "smooth"
+    });
+  }
+
+  function getColumnPositions() {
+    const boardRect = board.getBoundingClientRect();
+    return [...board.querySelectorAll(".column")]
+      .filter((column) => column.offsetParent !== null)
+      .map((column) => board.scrollLeft + column.getBoundingClientRect().left - boardRect.left);
   }
 
   function updateIndicator() {
@@ -243,13 +381,17 @@ function createBoardController(snapshot) {
   }
 
   function show(record, project) {
-    modal.innerHTML = renderDetail(record, project);
+    const content = createDetailNode(record, project);
+    clearChildren(modal);
+    modal.append(content);
     modal.classList.remove("dialog-tall");
+    modal.classList.remove("BLOCKED", "WIP", "TODO", "DONE");
+    modal.classList.add(record.status);
     modal.showModal();
     if (modal.scrollHeight + 16 > window.innerHeight) {
       modal.classList.add("dialog-tall");
     }
-    document.querySelector("#close").onclick = () => modal.close();
+    modal.querySelector("#close").onclick = () => modal.close();
   }
 
   function bindCards() {
@@ -261,14 +403,27 @@ function createBoardController(snapshot) {
     });
   }
 
+  function renderColumns() {
+    clearChildren(board);
+    currentColumns.forEach((project) => board.append(createColumnNode(project)));
+  }
+
+  function updateBoardState() {
+    board.classList.toggle("hide-empty-projects", hideEmpty.checked);
+    const visible = hideEmpty.checked
+      ? currentColumns.filter((project) => project.records.length > 0)
+      : currentColumns;
+    boardEmpty.classList.toggle("visible", visible.length === 0);
+  }
+
   function update() {
     try {
       error.textContent = "";
-      currentColumns = snapshot.projects.map((project) => filterProjectRecords(project, getTerms(search), done.checked, limit));
-      board.innerHTML = currentColumns.map(renderColumn).join("");
-      board.classList.toggle("hide-empty-projects", hideEmpty.checked);
-      const visibleColumns = hideEmpty.checked ? currentColumns.filter((project) => project.records.length > 0) : currentColumns;
-      boardEmpty.classList.toggle("visible", visibleColumns.length === 0);
+      currentColumns = snapshot.projects.map((project) => {
+        return filterProjectRecords(project, getTerms(search), done.checked, limit);
+      });
+      renderColumns();
+      updateBoardState();
       bindCards();
       requestAnimationFrame(updateIndicator);
     } catch (exception) {
@@ -281,7 +436,6 @@ function createBoardController(snapshot) {
     rightIndicator.addEventListener("click", () => scrollByColumn(1));
     board.addEventListener("scroll", updateIndicator, { passive: true });
     window.addEventListener("resize", updateIndicator);
-
     document.querySelectorAll("[data-eta]").forEach((button) => {
       button.onclick = () => {
         limit = button.dataset.eta ? Number(button.dataset.eta) : null;
@@ -289,7 +443,6 @@ function createBoardController(snapshot) {
         update();
       };
     });
-
     search.oninput = update;
     done.onchange = update;
     hideEmpty.onchange = update;

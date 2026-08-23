@@ -88,7 +88,8 @@ test("static dashboard embeds data and escapes body HTML before rendering", asyn
   assert.match(html, /max-width: 350px/);
   assert.match(html, /aria-label="Close details"/);
   assert.match(html, /--page-bg/);
-  assert.match(html, /modal\.innerHTML = renderDetail/);
+  assert.match(html, /template-card/);
+  assert.match(html, /cloneTemplate\("#template-detail"\)/);
   assert.doesNotMatch(html, /querySelector\("#detail"\)/);
   assert.match(html, /progress-wrap/);
   assert.match(html, /Checklist/);
