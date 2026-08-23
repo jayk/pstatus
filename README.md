@@ -53,7 +53,9 @@ You can also add a checklist:
 
 ### 2. Create a configuration file
 
-Create `pstatus.json` in the directory where you want to run `pstatus`, or pass the file path with `-c`.
+Create `pstatus.conf` in the directory where you want to run `pstatus`, or pass the file path with `-c`.
+
+`pstatus.conf` is the standard config filename.
 
 Example:
 
@@ -61,9 +63,16 @@ Example:
 {
   "files": {
     "Project A": ["../project-a/STATUS.md"],
-    "Project B": ["../project-b/STATUS.md", "../project-b/STATUS-extra.md"]
+    "Project B": [
+      "../project-b/STATUS.md",
+      {
+        "label": "javascript lib",
+        "file": "../project-b/STATUS-extra.md"
+      }
+    ]
   },
   "output": "./pstatus-output",
+  "data_file": "pstatus-data.json",
   "history": "./pstatus-output/history",
   "dashboard": "./pstatus-output/dashboard.html",
   "custom_css": "./pstatus-theme.css",
@@ -72,9 +81,14 @@ Example:
 }
 ```
 
-Use arrays for all `files` values. A project can have one file or many files.
+Use arrays for all `files` values. A project can have one file or many files. Each array item can be either:
 
-`source_path_depth` limits how much path information `pstatus` stores in generated data. With the default value `2`, a source path such as `dev/projects/vouchsafe/getvouchsafe/STATUS.md` becomes `vouchsafe/getvouchsafe/STATUS.md` in `pstatus.json` and in the dashboard.
+- a string file path
+- an object with `label` and `file`
+
+If you provide a file-level `label`, `pstatus` shows it on the task card and uses it in CLI output for records from that file.
+
+`source_path_depth` limits how much path information `pstatus` stores in generated data. With the default value `2`, a source path such as `dev/projects/vouchsafe/getvouchsafe/STATUS.md` becomes `vouchsafe/getvouchsafe/STATUS.md` in `pstatus-data.json` and in the dashboard.
 
 ### 3. Generate the snapshot
 
@@ -98,7 +112,7 @@ After `pstatus -r`, look in the output directory.
 
 You will see at least:
 
-- `pstatus.json`
+- `pstatus-data.json`
 - the dashboard HTML file, if `dashboard` is a local file path
 
 ### 5. Query the snapshot in the CLI
@@ -136,14 +150,15 @@ Create these files.
 Explain the breaking changes.
 ```
 
-`pstatus.json`:
+`pstatus.conf`:
 
 ```json
 {
   "files": {
     "Docs": ["./STATUS.md"]
   },
-  "output": "./pstatus-output"
+  "output": "./pstatus-output",
+  "data_file": "pstatus-data.json"
 }
 ```
 
@@ -156,7 +171,7 @@ pstatus
 
 Expected result:
 
-- `pstatus-output/pstatus.json` exists
+- `pstatus-output/pstatus-data.json` exists
 - the CLI shows the task summary
 
 ## Write Tasks In `STATUS.md`
@@ -170,6 +185,14 @@ Use this format for normal task records:
 ```text
 YYYY-MM-DD: STATUS: TITLE metadata:value metadata:value
 ```
+
+`pstatus` also accepts the date without the first colon:
+
+```text
+YYYY-MM-DD STATUS: TITLE metadata:value metadata:value
+```
+
+The form with the colon after the date is still the preferred form.
 
 Example:
 
@@ -226,7 +249,7 @@ Keep metadata values on one token. Do not put spaces in a metadata value.
 
 ### HTML in source files
 
-`pstatus` removes raw HTML tags from titles, bodies, and checklist text when it builds `pstatus.json`.
+`pstatus` removes raw HTML tags from titles, bodies, and checklist text when it builds `pstatus-data.json`.
 
 Use plain text or Markdown in `STATUS.md` files. Do not rely on inline HTML.
 
@@ -305,7 +328,7 @@ The dashboard shows:
 - one column per configured project label
 - task cards for matching items
 - task details in a popup dialog
-- search, ETA filters, and a completed-items toggle
+- search, ETA filters, a hide-empty-projects toggle, and a completed-items toggle
 
 The dashboard is read-only.
 
@@ -402,7 +425,7 @@ The flow is simple:
 
 1. You edit `STATUS.md` files.
 2. You run `pstatus -r`.
-3. `pstatus` writes a new `pstatus.json` snapshot.
+3. `pstatus` writes a new `pstatus-data.json` snapshot.
 4. The CLI and dashboard read that generated snapshot.
 
 If you do not run `pstatus -r`, the CLI and dashboard continue to show the old snapshot.
@@ -415,7 +438,9 @@ Required.
 
 Type: object.
 
-Each key is a project label. Each value is an array of one or more file paths.
+Each key is a project label. Each value is an array of one or more entries.
+
+Each array item can be either a string path or an object with `label` and `file`.
 
 Example:
 
@@ -423,11 +448,19 @@ Example:
 {
   "files": {
     "Docs": ["../docs/STATUS.md"],
-    "Server": ["../server/STATUS.md", "../server/STATUS-extra.md"]
+    "Server": [
+      "../server/STATUS.md",
+      {
+        "label": "worker",
+        "file": "../server/STATUS-extra.md"
+      }
+    ]
   },
   "source_path_depth": 2
 }
 ```
+
+If you use a file object label, `pstatus` shows that label on the task card, in the task detail dialog, and as a prefix in CLI output for tasks from that file.
 
 ### `output`
 
@@ -436,6 +469,16 @@ Required.
 Type: string.
 
 This directory stores the current snapshot.
+
+### `data_file`
+
+Optional.
+
+Type: string.
+
+Default: `pstatus-data.json`
+
+This value sets the generated snapshot file name inside the output directory.
 
 ### `history`
 
@@ -489,7 +532,7 @@ Examples:
 - depth `1`: `getvouchsafe/STATUS.md`
 - depth `2`: `vouchsafe/getvouchsafe/STATUS.md`
 
-Use this setting to avoid leaking full filesystem paths in `pstatus.json`, dashboard detail views, and static exports.
+Use this setting to avoid leaking full filesystem paths in `pstatus-data.json`, dashboard detail views, and static exports.
 
 ### Path rules
 
@@ -505,6 +548,12 @@ Use `---` to start a section.
 
 ```text
 YYYY-MM-DD: STATUS: TITLE metadata:value metadata:value
+```
+
+Also accepted:
+
+```text
+YYYY-MM-DD STATUS: TITLE metadata:value metadata:value
 ```
 
 ### Checklist-only section syntax
@@ -531,7 +580,7 @@ Raw HTML is removed before data is written to the snapshot.
 
 ### Dynamic mode
 
-The dynamic dashboard reads `pstatus.json` from the output directory.
+The dynamic dashboard reads the configured snapshot file, which defaults to `pstatus-data.json`, from the output directory.
 
 ### Static mode
 
@@ -543,11 +592,13 @@ The static dashboard embeds snapshot data directly in one HTML file.
 - per-column scrolling on desktop
 - horizontal column scrolling on mobile
 - task details in a popup dialog
+- `Hide empty projects` is enabled by default
 
 ### Controls
 
 - search
 - ETA filters
+- hide empty projects
 - show completed items
 
 ## Reference: CSS Customization
@@ -617,7 +668,7 @@ pstatus -r --overwrite-on-error
 
 ### The dashboard does not open
 
-Check the `dashboard` setting in `pstatus.json`.
+Check the `dashboard` setting in `pstatus.conf`.
 
 ### Search gives an error
 

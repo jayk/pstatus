@@ -17,7 +17,7 @@ function compile(value) {
 }
 
 function fieldValue(record, project, name) {
-  const reserved = { project, status: record.status, title: record.title, date: record.date };
+  const reserved = { project, status: record.status, title: record.title, date: record.date, label: record.label };
   if (name in reserved) return [reserved[name]];
   const value = record.metadata[name];
   return value === undefined ? [] : Array.isArray(value) ? value : [value];
@@ -49,7 +49,7 @@ export function filterRecords(snapshot, terms = [], { includeDone = false, etaLi
       return (record, project) => fieldValue(record, project, name).some((value) => regex.test(String(value)));
     }
     const regex = compile(term);
-    return (record, project) => [project, record.status, record.title, record.body, record.date, ...metadataText(record.metadata), ...checklistText(record.checklist)]
+    return (record, project) => [project, record.label, record.status, record.title, record.body, record.date, ...metadataText(record.metadata), ...checklistText(record.checklist)]
       .some((value) => regex.test(String(value)));
   });
   return snapshot.projects.flatMap((project) => project.records

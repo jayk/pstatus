@@ -55,10 +55,10 @@ test("cli output sorts records within a project by lowest eta first", async () =
   const projectA = path.join(root, "A.md");
   const configPath = path.join(root, "pstatus.json");
   await writeFile(projectA, "---\n2026-08-20: TODO: Slower task. ETA:2h\n---\n2026-08-20: TODO: Faster task. ETA:30m\n---\n2026-08-20: TODO: No eta task.\n");
-  await writeFile(configPath, JSON.stringify({ files: { Alpha: ["A.md"] }, output: "out" }));
+  await writeFile(configPath, JSON.stringify({ files: { Alpha: [{ label: "backend", file: "A.md" }] }, output: "out" }));
   const { stdout } = await exec("node", ["bin/pstatus.js", "-c", configPath, "-r", "--overwrite-on-error"], { cwd: "/opt/card/dev/projects/pstatus" });
   const lines = stdout.trim().split("\n");
-  assert.match(lines[0], /Faster task/);
-  assert.match(lines[1], /Slower task/);
+  assert.match(lines[0], /backend: Faster task/);
+  assert.match(lines[1], /backend: Slower task/);
   assert.match(lines[2], /No eta task/);
 });

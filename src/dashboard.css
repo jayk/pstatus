@@ -72,7 +72,6 @@ input {
 #controls {
   display: grid;
   gap: 0.6rem;
-  max-width: 64rem;
   padding: 0.72rem 0.85rem;
   background: rgba(17, 24, 43, 0.85);
   border: 1px solid var(--panel-border);
@@ -140,6 +139,12 @@ input {
   white-space: nowrap;
 }
 
+.toggle-group {
+  display: inline-flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
 #error {
   color: #ff8b8b;
   margin: 0;
@@ -159,6 +164,21 @@ input {
   flex: 1;
   min-height: 0;
   align-items: stretch;
+}
+
+#board.hide-empty-projects .column.is-empty {
+  display: none;
+}
+
+.board-empty {
+  display: none;
+  margin: 1.2rem 0 0;
+  color: var(--text-subtle);
+  font-style: italic;
+}
+
+.board-empty.visible {
+  display: block;
 }
 
 .board-chrome {
@@ -254,6 +274,27 @@ input {
   color: var(--text-muted);
 }
 
+.card-footer {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 0.5rem;
+}
+
+.card-label,
+.card-eta {
+  margin-top: 0;
+}
+
+.card-label {
+  text-align: left;
+}
+
+.card-eta {
+  text-align: right;
+}
+
 .progress-wrap {
   margin-top: 0.7rem;
 }
@@ -306,8 +347,8 @@ dialog::backdrop {
 
 #close {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
+  top: 0rem;
+  right: 0.5rem;
   border: 0;
   background: transparent;
   color: var(--text-muted);
@@ -334,9 +375,97 @@ dialog::backdrop {
   color: var(--text-main);
 }
 
+.detail-header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-top: 0rem;
+  margin-bottom: 0.9rem;
+  padding-top: 0.15rem;
+  padding-right: 2.5rem;
+  border-top: 6px solid;
+  max-width: 96%;
+}
+
+.detail-header.BLOCKED {
+  border-top-color: var(--danger);
+}
+
+.detail-header.WIP {
+  border-top-color: var(--success);
+}
+
+.detail-header.TODO {
+  border-top-color: var(--warning);
+}
+
+.detail-header.DONE {
+  border-top-color: var(--done);
+}
+
+.detail-header h2 {
+  margin: 0.2rem 0 0;
+}
+
+.detail-header > :first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.detail-status {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.detail-meta {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.detail-meta p {
+  margin: 0;
+}
+
 .source {
   font-size: 0.875rem;
   color: var(--text-subtle);
+}
+
+.detail-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(121, 168, 255, 0.14);
+  color: var(--text-main);
+  font-size: 0.85rem;
+}
+
+.detail-eta {
+  display: block;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 1.15rem;
+}
+
+.detail-eta span {
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.detail-eta strong {
+  color: var(--text-main);
+  font-size: 1.15rem;
 }
 
 .checklist ul {
@@ -418,6 +547,10 @@ code {
     font-size: 0.82rem;
   }
 
+  .toggle-group {
+    gap: 0.55rem;
+  }
+
   dialog {
     width: calc(100vw - 1rem);
     max-width: calc(100vw - 1rem);
@@ -433,5 +566,14 @@ code {
   dialog.dialog-tall {
     margin: 0.5rem;
     inset: 0 auto auto 0;
+  }
+
+  .detail-header {
+    flex-wrap: wrap;
+  }
+
+  .detail-eta {
+    align-items: flex-start;
+    text-align: left;
   }
 }

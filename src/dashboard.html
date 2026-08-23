@@ -21,14 +21,18 @@
           <button data-eta="120">&lt;= 2h</button>
           <button data-eta="240">&lt;= 4h</button>
         </div>
-        <label class="toggle"><input id="done" type="checkbox"> Show completed items</label>
+        <div class="toggle-group">
+          <label class="toggle"><input id="hide-empty" type="checkbox" checked> Hide empty projects</label>
+          <label class="toggle"><input id="done" type="checkbox"> Show completed items</label>
+        </div>
       </div>
       <p id="error" role="alert"></p>
     </div>
     <div class="board-chrome">
       <div id="board-indicator-left" class="board-indicator" aria-hidden="true">&#x2190;</div>
       <div id="board-indicator-right" class="board-indicator" aria-hidden="true">&#x2192;</div>
-      <div id="board"></div>
+      <p id="board-empty" class="board-empty">No matching items.</p>
+      <div id="board" class="hide-empty-projects"></div>
     </div>
   </main>
   <dialog id="modal"></dialog>

@@ -24,15 +24,24 @@ async function setup() {
       configPath: path.join(root, "pstatus.json"),
       configDisplayPath: `tmp/${rootName}/pstatus.json`,
       files: [
-        { label: "Configured Label", paths: [status, status2], displayPaths: [`tmp/${rootName}/STATUS.md`, `tmp/${rootName}/STATUS-2.md`] },
-        { label: "Missing", paths: [path.join(root, "missing.md")], displayPaths: [`tmp/${rootName}/missing.md`] }
+        {
+          label: "Configured Label",
+          paths: [status, status2],
+          displayPaths: [`tmp/${rootName}/STATUS.md`, `tmp/${rootName}/STATUS-2.md`],
+          entries: [
+            { path: status, displayPath: `tmp/${rootName}/STATUS.md`, label: "primary" },
+            { path: status2, displayPath: `tmp/${rootName}/STATUS-2.md`, label: null }
+          ]
+        },
+        { label: "Missing", paths: [path.join(root, "missing.md")], displayPaths: [`tmp/${rootName}/missing.md`], entries: [{ path: path.join(root, "missing.md"), displayPath: `tmp/${rootName}/missing.md`, label: null }] }
       ],
       output: path.join(root, "output"),
       history: null,
       dashboard: path.join(root, "output", "dashboard.html"),
       customCss: ".page-header p { color: rgb(255, 0, 0); }",
       pageTitle: "Custom Title",
-      sourcePathDepth: 2
+      sourcePathDepth: 2,
+      dataFileName: "pstatus-data.json"
     }
   };
 }
@@ -43,14 +52,14 @@ test("does not replace the snapshot after a status-file read failure by default"
   assert.equal(result.snapshot, null);
   assert.match(result.warnings.at(-1), /Snapshot was not replaced/);
   assert.match(result.warnings.join("\n"), /missing\.md/);
-  await assert.rejects(readFile(path.join(config.output, "pstatus.json")), /ENOENT/);
+  await assert.rejects(readFile(path.join(config.output, "pstatus-data.json")), /ENOENT/);
 });
 
 test("writes snapshots and dashboard when overwrite on error is enabled", async () => {
   const { config, root, rootName } = await setup();
   const result = await regenerate(config, { overwriteOnError: true });
   assert.equal(result.snapshot.projects.length, 1);
-  const saved = JSON.parse(await readFile(path.join(config.output, "pstatus.json"), "utf8"));
+  const saved = JSON.parse(await readFile(path.join(config.output, "pstatus-data.json"), "utf8"));
   assert.equal(saved.config, `tmp/${rootName}/pstatus.json`);
   assert.equal(saved.projects[0].name, "Configured Label");
   assert.equal(saved.projects[0].statusFile, `tmp/${rootName}/STATUS.md`);
@@ -58,13 +67,15 @@ test("writes snapshots and dashboard when overwrite on error is enabled", async 
   assert.equal(saved.projects[0].records.length, 2);
   assert.equal(saved.projects[0].records[0].title, "Test task.");
   assert.equal(saved.projects[0].records[0].body, "unsafe body");
+  assert.equal(saved.projects[0].records[0].label, "primary");
   assert.equal(saved.projects[0].records[1].title, "Second task.");
+  assert.equal(saved.projects[0].records[1].label, undefined);
   assert.equal(saved.projects[0].records[0].source.file, `tmp/${rootName}/STATUS.md`);
   assert.equal(saved.projects[0].records[1].source.file, `tmp/${rootName}/STATUS-2.md`);
   assert.doesNotMatch(JSON.stringify(saved), new RegExp(root.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   assert.doesNotMatch(JSON.stringify(saved), /<div>|<b>/);
   const dashboard = await readFile(config.dashboard, "utf8");
-  assert.match(dashboard, /fetch\("pstatus.json"\)/);
+  assert.match(dashboard, /const dataFileName = "pstatus-data.json"/);
   assert.match(dashboard, /Custom Title/);
   assert.match(dashboard, /rgb\(255, 0, 0\)/);
 });
@@ -86,4 +97,10 @@ test("static dashboard embeds data and escapes body HTML before rendering", asyn
   assert.match(html, /board-indicator-right/);
   assert.match(html, /&#x2190;|←/);
   assert.match(html, /&#x2192;|→/);
+  assert.match(html, /Hide empty projects/);
+  assert.match(html, /id="hide-empty" type="checkbox" checked/);
+  assert.match(html, /hide-empty-projects/);
+  assert.match(html, /board-empty/);
+  assert.match(html, /card-label/);
+  assert.match(html, /detail-label/);
 });

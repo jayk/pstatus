@@ -24,6 +24,20 @@ Body with **Markdown** and <script>unsafe</script>.
   assert.equal(project.records[0].body, "Body with **Markdown** and unsafe.");
 });
 
+test("accepts dated records with or without a colon after the date", () => {
+  const withColon = parseStatusFile(`---
+2026-08-22: TODO: With colon eta:1h
+`, "/tmp/with-colon.md", [], { projectName: "Example" });
+  const withoutColon = parseStatusFile(`---
+2026-08-22 TODO: Without colon eta:2h
+`, "/tmp/without-colon.md", [], { projectName: "Example" });
+
+  assert.equal(withColon.records[0].title, "With colon");
+  assert.equal(withColon.records[0].derived.etaMinutes, 60);
+  assert.equal(withoutColon.records[0].title, "Without colon");
+  assert.equal(withoutColon.records[0].derived.etaMinutes, 120);
+});
+
 test("strips html from titles, bodies, and checklist items before storing records", () => {
   const project = parseStatusFile(`---
 2026-08-20: TODO: Fix <b>markup</b> ETA:1h

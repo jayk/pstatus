@@ -3,9 +3,14 @@ import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { parseStatusFile } from "./parser.js";
 import { dashboardHtml } from "./dashboard.js";
 
+function snapshotPath(config) {
+  return path.join(config.output, config.dataFileName);
+}
+
 export async function readSnapshot(config) {
-  try { return JSON.parse(await readFile(path.join(config.output, "pstatus.json"), "utf8")); }
-  catch { throw new Error(`Current snapshot not found: ${path.join(config.output, "pstatus.json")}. Run pstatus -r first.`); }
+  const filePath = snapshotPath(config);
+  try { return JSON.parse(await readFile(filePath, "utf8")); }
+  catch { throw new Error(`Current snapshot not found: ${filePath}. Run pstatus -r first.`); }
 }
 
 async function writeJson(file, value) {
@@ -17,14 +22,23 @@ async function writeJson(file, value) {
 
 export async function regenerate(config, { overwriteOnError = false } = {}) {
   const warnings = [], projects = [], failures = [];
-  await Promise.all(config.files.map(async ({ label, paths, displayPaths }) => {
-    const fileResults = await Promise.all(paths.map(async (file, index) => {
+  await Promise.all(config.files.map(async ({ label, entries }) => {
+    const fileResults = await Promise.all(entries.map(async ({ path: file, displayPath, label: fileLabel }) => {
       try {
         const [content, info] = await Promise.all([readFile(file, "utf8"), stat(file)]);
-        const project = parseStatusFile(content, displayPaths[index], warnings, { mtime: info.mtime, projectName: label });
-        return project ? { file, displayPath: displayPaths[index], project } : null;
+        const project = parseStatusFile(content, displayPath, warnings, { mtime: info.mtime, projectName: label });
+        if (!project) return null;
+        return {
+          file,
+          displayPath,
+          fileLabel,
+          project: {
+            ...project,
+            records: project.records.map((record) => fileLabel ? { ...record, label: fileLabel } : record)
+          }
+        };
       } catch (error) {
-        failures.push(`${displayPaths[index]}: ${error.message}`);
+        failures.push(`${displayPath}: ${error.message}`);
         return null;
       }
     }));
@@ -46,7 +60,7 @@ export async function regenerate(config, { overwriteOnError = false } = {}) {
   if (projects.length === 0) throw new Error(`No status files loaded.\n${[...warnings, ...failures].join("\n")}`);
   const snapshot = { generated: new Date().toISOString(), config: config.configDisplayPath, projects: projects.sort((a, b) => config.files.findIndex((item) => item.label === a.name) - config.files.findIndex((item) => item.label === b.name)) };
   if (failures.length && !overwriteOnError) return { snapshot: null, warnings: [...warnings, ...failures, "Snapshot was not replaced because one or more files failed to load. Use --overwrite-on-error to replace it."] };
-  await writeJson(path.join(config.output, "pstatus.json"), snapshot);
+  await writeJson(snapshotPath(config), snapshot);
   if (config.history) await writeJson(path.join(config.history, `${snapshot.generated.replace(/[:.]/g, "").replace("Z", "Z")}.json`), snapshot);
   if (config.dashboard && !/^https?:\/\//i.test(config.dashboard)) {
     await mkdir(path.dirname(config.dashboard), { recursive: true });

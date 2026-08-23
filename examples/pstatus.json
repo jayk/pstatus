@@ -11,7 +11,8 @@
     ]
   },
   "output": "./output",
+  "data_file": "pstatus-data.json",
   "dashboard": "./output/index.html",
-  "page_title": "Project Status",
+  "page_title": "Example PStatus Board",
   "source_path_depth": 1
 }

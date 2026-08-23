@@ -4,13 +4,14 @@ import { fileURLToPath } from "node:url";
 
 const script = String.raw`
 const embedded = window.PSTATUS_EMBEDDED_DATA;
+const dataFileName = "__PSTATUS_DATA_FILE__";
 const order = { BLOCKED: 0, WIP: 1, TODO: 2, DONE: 3 };
 
 function loadData() {
   if (embedded) return Promise.resolve(embedded);
 
-  return fetch("pstatus.json").then((response) => {
-    if (!response.ok) throw new Error("Unable to load pstatus.json");
+  return fetch(dataFileName).then((response) => {
+    if (!response.ok) throw new Error("Unable to load " + dataFileName);
     return response.json();
   });
 }
@@ -83,6 +84,7 @@ function parseEta(value) {
 function searchableValues(record, project) {
   return [
     project,
+    record.label,
     record.status,
     record.title,
     record.body,
@@ -93,7 +95,7 @@ function searchableValues(record, project) {
 }
 
 function fieldValues(record, project, name) {
-  const fields = { project, status: record.status, title: record.title, date: record.date };
+  const fields = { project, label: record.label, status: record.status, title: record.title, date: record.date };
   const value = name in fields ? fields[name] : record.metadata[name];
   return (Array.isArray(value) ? value : [value]).filter(Boolean);
 }
@@ -140,9 +142,13 @@ function filterProjectRecords(project, terms, includeDone, etaLimit) {
 }
 
 function renderCard(record, projectName, index) {
+  const hasLabel = Boolean(record.label);
+  const hasEta = Boolean(record.metadata.eta);
   const eta = record.metadata.eta
-    ? '<small>ETA: ' + esc(Array.isArray(record.metadata.eta) ? record.metadata.eta.join(", ") : record.metadata.eta) + '</small>'
-    : '';
+    ? '<small class="card-eta">' + esc(Array.isArray(record.metadata.eta) ? record.metadata.eta.join(", ") : record.metadata.eta) + '</small>'
+    : '<small class="card-eta"></small>';
+  const label = record.label ? '<small class="card-label">' + esc(record.label) + '</small>' : '<small class="card-label"></small>';
+  const footer = hasLabel || hasEta ? '<span class="card-footer">' + label + eta + '</span>' : '';
 
   return '<button class="card '
     + record.status
@@ -154,8 +160,8 @@ function renderCard(record, projectName, index) {
     + esc(record.status)
     + ':</b> '
     + esc(record.title)
-    + eta
     + checklistProgress(record)
+    + footer
     + '</button>';
 }
 
@@ -164,23 +170,29 @@ function renderColumn(project) {
     ? project.records.map((record, index) => renderCard(record, project.name, index)).join("")
     : '<p class="empty">No matching items.</p>';
 
-  return '<section class="column"><h2>' + esc(project.name) + '</h2>' + content + '</section>';
+  return '<section class="column' + (project.records.length ? '' : ' is-empty') + '"><h2>' + esc(project.name) + '</h2>' + content + '</section>';
 }
 
 function renderDetail(record, project) {
   const metadata = Object.entries(record.metadata)
     .map(([key, value]) => '<dt>' + esc(key) + '</dt><dd>' + esc(Array.isArray(value) ? value.join(", ") : value) + '</dd>')
     .join("");
+  const label = record.label ? '<span class="detail-label">' + esc(record.label) + '</span>' : '';
+  const eta = record.metadata.eta
+    ? '<div class="detail-eta"><span>ETA <strong>' + esc(Array.isArray(record.metadata.eta) ? record.metadata.eta.join(", ") : record.metadata.eta) + '</strong></span></div>'
+    : '';
 
-  return '<button id="close" aria-label="Close details">&times;</button><h2>'
+  return '<button id="close" aria-label="Close details">&times;</button><header class="detail-header ' + esc(record.status) + '"><div><p class="detail-status">' + esc(record.status) + '</p><h2>'
     + esc(record.title)
-    + '</h2><p><b>Project:</b> '
+    + '</h2></div>'
+    + eta
+    + '</header><div class="detail-meta"><p><b>Project:</b> '
     + esc(project)
-    + '<br><b>Status:</b> '
-    + esc(record.status)
-    + '<br><b>Date:</b> '
-    + esc(record.date)
     + '</p>'
+    + label
+    + '<p><b>Date:</b> '
+    + esc(record.date)
+    + '</p></div>'
     + checklistProgress(record)
     + '<dl>'
     + metadata
@@ -198,7 +210,9 @@ function renderDetail(record, project) {
 function createBoardController(snapshot) {
   const search = document.querySelector("#search");
   const done = document.querySelector("#done");
+  const hideEmpty = document.querySelector("#hide-empty");
   const error = document.querySelector("#error");
+  const boardEmpty = document.querySelector("#board-empty");
   const board = document.querySelector("#board");
   const leftIndicator = document.querySelector("#board-indicator-left");
   const rightIndicator = document.querySelector("#board-indicator-right");
@@ -228,15 +242,15 @@ function createBoardController(snapshot) {
     });
   }
 
-    function show(record, project) {
-      modal.innerHTML = renderDetail(record, project);
-      modal.classList.remove("dialog-tall");
-      modal.showModal();
-      if (modal.scrollHeight + 16 > window.innerHeight) {
-        modal.classList.add("dialog-tall");
-      }
-      document.querySelector("#close").onclick = () => modal.close();
+  function show(record, project) {
+    modal.innerHTML = renderDetail(record, project);
+    modal.classList.remove("dialog-tall");
+    modal.showModal();
+    if (modal.scrollHeight + 16 > window.innerHeight) {
+      modal.classList.add("dialog-tall");
     }
+    document.querySelector("#close").onclick = () => modal.close();
+  }
 
   function bindCards() {
     board.querySelectorAll(".card").forEach((card) => {
@@ -252,6 +266,9 @@ function createBoardController(snapshot) {
       error.textContent = "";
       currentColumns = snapshot.projects.map((project) => filterProjectRecords(project, getTerms(search), done.checked, limit));
       board.innerHTML = currentColumns.map(renderColumn).join("");
+      board.classList.toggle("hide-empty-projects", hideEmpty.checked);
+      const visibleColumns = hideEmpty.checked ? currentColumns.filter((project) => project.records.length > 0) : currentColumns;
+      boardEmpty.classList.toggle("visible", visibleColumns.length === 0);
       bindCards();
       requestAnimationFrame(updateIndicator);
     } catch (exception) {
@@ -275,6 +292,7 @@ function createBoardController(snapshot) {
 
     search.oninput = update;
     done.onchange = update;
+    hideEmpty.onchange = update;
   }
 
   return { bindControls, update };
@@ -306,9 +324,10 @@ export async function dashboardHtml(snapshot = null, config = {}) {
   const embeddedData = snapshot ? `<script>window.PSTATUS_EMBEDDED_DATA=${JSON.stringify(snapshot).replace(/</g, "\\u003c")}</script>` : "";
   const pageTitle = config.pageTitle || "PStatus";
   const customCss = config.customCss || "";
+  const runtimeScript = script.replace("__PSTATUS_DATA_FILE__", config.dataFileName || "pstatus-data.json");
   return template
     .replaceAll("{{PAGE_TITLE}}", escapeReplacement(pageTitle))
     .replace("{{STYLES}}", `${css}\n${customCss}`)
     .replace("{{EMBEDDED_DATA}}", embeddedData)
-    .replace("{{SCRIPT}}", script);
+    .replace("{{SCRIPT}}", runtimeScript);
 }

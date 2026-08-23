@@ -71,10 +71,10 @@ function parseRecord(section, lineOffset, sourceFile, warnings) {
   const statusIndex = lines.findIndex((line) => line.trim().length > 0);
   if (statusIndex === -1) return null;
   const line = lines[statusIndex].replace(/\r$/, "");
-  const match = /^(\d{4}-\d{2}-\d{2}):\s*([A-Za-z]+):\s*(.*)$/.exec(line);
+  const match = /^(\d{4}-\d{2}-\d{2})(?::)?\s+([A-Za-z]+):\s*(.*)$/.exec(line);
   const lineNumber = lineOffset + statusIndex + 1;
   if (!match) {
-    if (/^\d{4}-\d{2}-\d{2}:/.test(line)) warnings.push(`${sourceFile}:${lineNumber}: malformed status line ignored.`);
+    if (/^\d{4}-\d{2}-\d{2}(?::)?\s+/.test(line) || /^\d{4}-\d{2}-\d{2}:/.test(line)) warnings.push(`${sourceFile}:${lineNumber}: malformed status line ignored.`);
     return null;
   }
   const [, date, rawStatus, remainder] = match;

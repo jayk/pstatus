@@ -125,9 +125,13 @@ function requireValue(argv, index, errorMessage) {
 }
 
 function formatEta(metadata) {
-  if (!metadata.eta) return "";
+  if (!metadata?.eta) return "";
   const eta = Array.isArray(metadata.eta) ? metadata.eta.join(", ") : metadata.eta;
   return `\tETA: ${eta}`;
+}
+
+function formatTitle(record) {
+  return record.label ? `${record.label}: ${record.title}` : record.title;
 }
 
 function printSummary(snapshot, terms) {
@@ -139,7 +143,7 @@ function printSummary(snapshot, terms) {
   }
 
   for (const record of records) {
-    console.log(`${record.project}\t${record.status}\t${record.title}${formatEta(record.metadata)}`);
+    console.log(`${record.project}\t${record.status}\t${formatTitle(record)}${formatEta(record.metadata)}`);
   }
 }
 
@@ -231,6 +235,9 @@ async function main() {
   validateOptions(options);
 
   const config = await loadConfig({ configFile: options.configFile });
+  if (config.usedLegacyDefault) {
+    console.error(`Warning: using legacy config filename ${config.configPath}. Rename it to ${path.resolve(process.cwd(), "pstatus.conf")}.`);
+  }
   const snapshot = await loadSnapshot(config, options);
   if (!snapshot) return;
 
