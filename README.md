@@ -23,6 +23,21 @@ In short: you keep your todos in Markdown, near your code, and `pstatus` turns t
 
 ![pstatus dashboard screenshot](https://raw.githubusercontent.com/jayk/pstatus/master/examples/pstatus-screenshot.png)
 
+## Install
+
+Install the npm package globally:
+
+```text
+npm install -g pstatus-js
+```
+
+or 
+```text
+yarn global add pstatus-js
+```
+
+This installs the `pstatus` CLI command.
+
 ## Getting Started
 
 This section gives you a complete setup from scratch.
@@ -53,7 +68,7 @@ You can also add a checklist:
 
 ### 2. Create a configuration file
 
-Create `pstatus.conf` in the directory where you want to run `pstatus`, or pass the file path with `-c`.
+Create `pstatus.conf` in the directory where you want to run `pstatus`, pass the file path with `-c`, or set `PSTATUS_CONFIG`.
 
 `pstatus.conf` is the standard config filename.
 
@@ -64,10 +79,13 @@ Example:
   "files": {
     "Project A": ["../project-a/STATUS.md"],
     "Project B": [
-      "../project-b/STATUS.md",
       {
-        "label": "javascript lib",
-        "file": "../project-b/STATUS-extra.md"
+        "label": "Core",
+        "file": "../project-b/STATUS.md"
+      },
+      {
+        "label": "Javascript lib",
+        "file": "../project-b-lib/STATUS.md"
       }
     ]
   },
@@ -88,7 +106,11 @@ Use arrays for all `files` values. A project can have one file or many files. Ea
 
 If you provide a file-level `label`, `pstatus` shows it on the task card and uses it in CLI output for records from that file.
 
+`pstatus` also shows that label in the task detail dialog.
+
 `source_path_depth` limits how much path information `pstatus` stores in generated data. With the default value `2`, a source path such as `dev/projects/vouchsafe/getvouchsafe/STATUS.md` becomes `vouchsafe/getvouchsafe/STATUS.md` in `pstatus-data.json` and in the dashboard.
+
+All relative paths in the config resolve relative to the config file location.
 
 ### 3. Generate the snapshot
 
@@ -274,6 +296,8 @@ The CLI reads the current snapshot unless you use `-r`.
 pstatus
 ```
 
+Records stay grouped by project. Within each project, `pstatus` shows the lowest-ETA items first.
+
 ### Regenerate the snapshot
 
 ```text
@@ -289,8 +313,19 @@ Important: generated snapshots do not store full source paths by default. `pstat
 ```text
 pstatus type:write
 pstatus status:WIP
-pstatus project:docs ETA:1h
+pstatus project:docs eta:1h
+pstatus eta:1h
+pstatus eta:=30m
+pstatus label:backend
 ```
+
+### List project query tokens
+
+```text
+pstatus -l
+```
+
+Use `pstatus -l` to print ready-to-copy `project:...` query tokens for all configured projects.
 
 ### Use a specific config file
 
@@ -328,6 +363,8 @@ The dashboard shows:
 - one column per configured project label
 - task cards for matching items
 - task details in a popup dialog
+- file labels on cards and in task details when configured
+- checklist progress for checklist-backed tasks
 - search, ETA filters, a hide-empty-projects toggle, and a completed-items toggle
 
 The dashboard is read-only.
@@ -336,7 +373,7 @@ The dashboard does not refresh source files. Run `pstatus -r` to refresh the gen
 
 ### Search
 
-Use plain terms to search across project, status, title, body, and metadata.
+Use plain terms to search across project, file label, status, title, body, date, metadata, and checklist text.
 
 Example:
 
@@ -350,12 +387,24 @@ Examples:
 
 ```text
 project:docs
+label:backend
 status:WIP
+date:2026-08-20
 type:write
 priority:high
+eta:1h
+eta:=30m
 ```
 
 All terms use AND logic.
+
+Search terms are regular expressions. If a query contains an invalid regular expression, `pstatus` shows an error.
+
+For `eta:value` queries:
+
+- `eta:1h` means 1 hour or less
+- `eta:=1h` means exactly 1 hour
+- if `value` is not a recognized ETA format, `pstatus` treats it as a regular expression against the raw ETA text
 
 ### ETA filters
 
@@ -461,6 +510,14 @@ Example:
 ```
 
 If you use a file object label, `pstatus` shows that label on the task card, in the task detail dialog, and as a prefix in CLI output for tasks from that file.
+
+### Config lookup
+
+`pstatus` loads config in this order:
+
+1. the file passed with `-c`
+2. the path from `PSTATUS_CONFIG`
+3. `pstatus.conf` in the current working directory
 
 ### `output`
 
@@ -591,7 +648,10 @@ The static dashboard embeds snapshot data directly in one HTML file.
 - one column per configured project label
 - per-column scrolling on desktop
 - horizontal column scrolling on mobile
+- scroll indicators for horizontal board navigation
 - task details in a popup dialog
+- file labels on cards and in detail views when configured
+- checklist progress bars for checklist-backed tasks
 - `Hide empty projects` is enabled by default
 
 ### Controls

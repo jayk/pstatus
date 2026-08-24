@@ -391,6 +391,14 @@ function createBoardController(snapshot) {
     if (modal.scrollHeight + 16 > window.innerHeight) {
       modal.classList.add("dialog-tall");
     }
+
+    requestAnimationFrame(() => {
+      const top = modal.getBoundingClientRect().top;
+      if (top < 16) {
+        window.scrollBy({ top: top - 16, behavior: "smooth" });
+      }
+    });
+
     modal.querySelector("#close").onclick = () => modal.close();
   }
 
