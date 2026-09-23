@@ -159,6 +159,13 @@ This opens the configured dashboard. It does not start a server.
 
 To refresh the dashboard data, run `pstatus -r` first.
 
+To serve and refresh the dashboard while you work, run:
+
+```text
+pstatus -w -s -o
+pstatus -w 30 -s -o
+```
+
 ## Quick Start Example
 
 Create these files.
@@ -327,6 +334,18 @@ pstatus -l
 
 Use `pstatus -l` to print ready-to-copy `project:...` query tokens for all configured projects.
 
+### List configured source files
+
+```text
+pstatus -f
+```
+
+Use `pstatus -f` to print the configured source files, one per line. This is useful for opening them in an editor:
+
+```text
+vi $(pstatus -f)
+```
+
 ### Use a specific config file
 
 ```text
@@ -338,6 +357,40 @@ pstatus -c work-config.json -r
 ```text
 pstatus -o
 ```
+
+### Serve the configured dashboard
+
+```text
+pstatus -s
+```
+
+This serves the configured output directory on `http://127.0.0.1:8080/`.
+
+Use the served dashboard `Refresh` button to reload the latest generated snapshot. The small timestamp next to it shows when the loaded snapshot was generated.
+
+Use `-o` with `-s` to open the served dashboard URL:
+
+```text
+pstatus -s -o
+```
+
+### Watch source files
+
+```text
+pstatus -w
+pstatus -w 30
+```
+
+This regenerates the snapshot immediately, then watches configured status files and regenerates again when they change. The optional number sets the served dashboard refresh interval in seconds when combined with `-s -o`; the default is 10 seconds.
+
+Combine watch, serve, and open when you want a live local dashboard:
+
+```text
+pstatus -w -s -o
+pstatus -w 30 -s -o
+```
+
+This opens the dashboard with automatic JSON refresh enabled.
 
 ### Create a static dashboard file
 
@@ -420,7 +473,24 @@ If a task has no parsed ETA, it does not appear when an ETA filter is active.
 
 ## Serve the Dashboard
 
-Serve the output directory with any static file server.
+Serve the output directory with the built-in local static server:
+
+```text
+pstatus -s
+pstatus -s -o
+pstatus -w -s -o
+pstatus -w 30 -s -o
+```
+
+When `-w -s -o` opens the dashboard, the page periodically reloads the JSON snapshot. You can also add `?watch=30` to the served dashboard URL manually.
+
+The default server is `http://127.0.0.1:8080/`. Use `--host` and `--port` to change it:
+
+```text
+pstatus -s --port 9000
+```
+
+You can also serve the output directory with any other static file server.
 
 Examples:
 

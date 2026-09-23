@@ -104,4 +104,9 @@ test("static dashboard embeds data and escapes body HTML before rendering", asyn
   assert.match(html, /board-empty/);
   assert.match(html, /card-label/);
   assert.match(html, /detail-label/);
+  assert.match(html, /id="refresh"/);
+  assert.match(html, /id="last-updated"/);
+  assert.match(html, /function refreshData/);
+  assert.match(html, /get\("watch"\)/);
+  assert.match(html, /watchInterval \* 1000/);
 });

@@ -10,7 +10,8 @@ const order = { BLOCKED: 0, WIP: 1, TODO: 2, DONE: 3 };
 function loadData() {
   if (embedded) return Promise.resolve(embedded);
 
-  return fetch(dataFileName).then((response) => {
+  return fetch(dataFileName, { cache: "no-cache" }).then((response) => {
+    if (response.status === 304) return null;
     if (!response.ok) throw new Error("Unable to load " + dataFileName);
     return response.json();
   });
@@ -318,6 +319,8 @@ function createDetailNode(record, project) {
 
 function createBoardController(snapshot) {
   const search = document.querySelector("#search");
+  const refresh = document.querySelector("#refresh");
+  const lastUpdated = document.querySelector("#last-updated");
   const done = document.querySelector("#done");
   const hideEmpty = document.querySelector("#hide-empty");
   const error = document.querySelector("#error");
@@ -326,8 +329,20 @@ function createBoardController(snapshot) {
   const leftIndicator = document.querySelector("#board-indicator-left");
   const rightIndicator = document.querySelector("#board-indicator-right");
   const modal = document.querySelector("#modal");
+  let currentSnapshot = snapshot;
   let limit = null;
   let currentColumns = [];
+
+  function formatGenerated(value) {
+    if (!value) return "Updated: unknown";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Updated: " + value;
+    return "Updated: " + date.toLocaleString();
+  }
+
+  function updateLastUpdated() {
+    lastUpdated.textContent = formatGenerated(currentSnapshot.generated);
+  }
 
   function scrollByColumn(direction) {
     const positions = getColumnPositions();
@@ -427,7 +442,7 @@ function createBoardController(snapshot) {
   function update() {
     try {
       error.textContent = "";
-      currentColumns = snapshot.projects.map((project) => {
+      currentColumns = currentSnapshot.projects.map((project) => {
         return filterProjectRecords(project, getTerms(search), done.checked, limit);
       });
       renderColumns();
@@ -452,17 +467,45 @@ function createBoardController(snapshot) {
       };
     });
     search.oninput = update;
+    if (embedded) {
+      refresh.disabled = true;
+      refresh.title = "Static dashboards contain embedded snapshot data.";
+    } else {
+      refresh.onclick = () => refreshData({ manual: true });
+    }
     done.onchange = update;
     hideEmpty.onchange = update;
   }
 
-  return { bindControls, update };
+  function setSnapshot(nextSnapshot) {
+    currentSnapshot = nextSnapshot;
+    updateLastUpdated();
+    update();
+  }
+
+  async function refreshData({ manual = false } = {}) {
+    if (manual) refresh.disabled = true;
+    try {
+      const snapshot = await loadData();
+      if (snapshot) setSnapshot(snapshot);
+    } catch (exception) {
+      error.textContent = exception.message;
+    } finally {
+      refresh.disabled = false;
+    }
+  }
+
+  return { bindControls, refreshData, setSnapshot, update };
 }
 
 function render(snapshot) {
   const controller = createBoardController(snapshot);
   controller.bindControls();
-  controller.update();
+  controller.setSnapshot(snapshot);
+  const watchInterval = Number(new URLSearchParams(location.search).get("watch"));
+  if (!embedded && watchInterval > 0) {
+    setInterval(() => controller.refreshData(), watchInterval * 1000);
+  }
 }
 
 loadData().then(render).catch((error) => {

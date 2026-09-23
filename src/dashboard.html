@@ -12,7 +12,13 @@
       <h1>{{PAGE_TITLE}} <span>Cross-project status dashboard</span></h1>
     </header>
     <div id="controls">
-      <input id="search" aria-label="Search" placeholder="Search">
+      <div class="control-top-row">
+        <input id="search" aria-label="Search" placeholder="Search">
+        <div class="refresh-wrap">
+          <button id="refresh" type="button">Refresh</button>
+          <small id="last-updated"></small>
+        </div>
+      </div>
       <div class="filter-row">
         <div class="eta-controls">
           <span>ETA:</span>

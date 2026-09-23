@@ -79,13 +79,47 @@ input {
   backdrop-filter: blur(14px);
 }
 
+.control-top-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 #search {
+  flex: 1 1 auto;
   width: 100%;
   padding: 0.68rem 0.9rem;
   border-radius: 0.8rem;
   border: 1px solid var(--panel-border);
   background: var(--input-bg);
   color: var(--text-main);
+}
+
+.refresh-wrap {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.45rem;
+  align-items: center;
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+#refresh {
+  padding: 0.46rem 0.76rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: var(--button-bg);
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+#refresh:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+#last-updated {
+  color: var(--text-subtle);
 }
 
 .filter-row {
@@ -569,6 +603,15 @@ code {
 
   .filter-row {
     gap: 0.5rem;
+  }
+
+  .control-top-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .refresh-wrap {
+    justify-content: space-between;
   }
 
   .eta-controls {
