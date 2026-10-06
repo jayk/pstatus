@@ -19,7 +19,12 @@ This makes it easy to work with todos that are normally scattered across multipl
 
 In short: you keep your todos in Markdown, near your code, and `pstatus` turns them into something you can actually use across all your projects.
 
-`pstatus` does not watch your files. It does not update by itself. Your `STATUS.md` files are the source of truth. The generated snapshot and the dashboard change only when you run a CLI command such as `pstatus -r`.
+In it's default mode, `pstatus` reads your files and generates static HTML of your dashboard. As of version v1.2.0 `pstatus`
+can watch your files and serve the dashboard directly. 
+
+Your `STATUS.md` files are always the source of truth. The generated snapshot and the dashboard change only when you run a CLI command such as `pstatus -r`.  You may also run in watch mode, in which case the files will be monitored for changes and
+updates will occur automatically. For more details, see command line options below.
+
 
 ![pstatus dashboard screenshot](https://raw.githubusercontent.com/jayk/pstatus/master/examples/pstatus-screenshot.png)
 
