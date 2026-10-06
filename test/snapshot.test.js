@@ -100,6 +100,13 @@ test("static dashboard embeds data and escapes body HTML before rendering", asyn
   assert.match(html, /&#x2192;|→/);
   assert.match(html, /Hide empty projects/);
   assert.match(html, /id="hide-empty" type="checkbox" checked/);
+  assert.match(html, /id="project-filter"/);
+  assert.match(html, /id="project-summary"/);
+  assert.match(html, /id="project-selector"/);
+  assert.match(html, /Select all/);
+  assert.match(html, /Select none/);
+  assert.match(html, /pstatus:selected-projects/);
+  assert.match(html, /localStorage\.setItem/);
   assert.match(html, /hide-empty-projects/);
   assert.match(html, /board-empty/);
   assert.match(html, /card-label/);

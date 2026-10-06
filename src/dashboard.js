@@ -6,6 +6,7 @@ const script = String.raw`
 const embedded = window.PSTATUS_EMBEDDED_DATA;
 const dataFileName = "__PSTATUS_DATA_FILE__";
 const order = { BLOCKED: 0, WIP: 1, TODO: 2, DONE: 3 };
+const projectSelectionKey = "pstatus:selected-projects:" + location.pathname;
 
 function loadData() {
   if (embedded) return Promise.resolve(embedded);
@@ -182,6 +183,33 @@ function getTerms(search) {
   return search.value.trim().split(/\s+/).filter(Boolean);
 }
 
+function projectNames(snapshot) {
+  return snapshot.projects.map((project) => project.name);
+}
+
+function loadProjectSelection() {
+  try {
+    const raw = localStorage.getItem(projectSelectionKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? new Set(parsed.filter((item) => typeof item === "string")) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveProjectSelection(selectedNames) {
+  try {
+    localStorage.setItem(projectSelectionKey, JSON.stringify([...selectedNames]));
+  } catch {
+    // Project filtering should still work for this session when storage is unavailable.
+  }
+}
+
+function selectedProjectsForSnapshot(snapshot, selectedNames) {
+  return snapshot.projects.filter((project) => selectedNames.has(project.name));
+}
+
 function filterProjectRecords(project, terms, includeDone, etaLimit) {
   const records = project.records
     .filter((record) => {
@@ -323,6 +351,14 @@ function createBoardController(snapshot) {
   const lastUpdated = document.querySelector("#last-updated");
   const done = document.querySelector("#done");
   const hideEmpty = document.querySelector("#hide-empty");
+  const projectFilter = document.querySelector("#project-filter");
+  const projectSelector = document.querySelector("#project-selector");
+  const projectSelectorList = document.querySelector("#project-selector-list");
+  const projectSelectAll = document.querySelector("#project-select-all");
+  const projectSelectNone = document.querySelector("#project-select-none");
+  const projectCancel = document.querySelector("#project-cancel");
+  const projectApply = document.querySelector("#project-apply");
+  const projectSummary = document.querySelector("#project-summary");
   const error = document.querySelector("#error");
   const boardEmpty = document.querySelector("#board-empty");
   const board = document.querySelector("#board");
@@ -332,6 +368,7 @@ function createBoardController(snapshot) {
   let currentSnapshot = snapshot;
   let limit = null;
   let currentColumns = [];
+  let selectedProjectNames = loadProjectSelection();
 
   function formatGenerated(value) {
     if (!value) return "Updated: unknown";
@@ -395,6 +432,67 @@ function createBoardController(snapshot) {
     });
   }
 
+  function reconcileProjectSelection() {
+    const names = projectNames(currentSnapshot);
+    if (!selectedProjectNames) {
+      selectedProjectNames = new Set(names);
+      return;
+    }
+
+    selectedProjectNames = new Set(names.filter((name) => selectedProjectNames.has(name)));
+  }
+
+  function updateProjectFilterButton() {
+    const total = currentSnapshot.projects.length;
+    const selected = selectedProjectNames.size;
+    const showingAll = selected === total;
+    const label = showingAll
+      ? "Showing all projects"
+      : "Showing " + selected + " of " + total + " projects";
+    projectFilter.classList.toggle("is-partial", !showingAll);
+    projectFilter.title = label;
+    projectFilter.setAttribute("aria-label", label + ". Select projects");
+    projectSummary.textContent = showingAll ? "" : label;
+  }
+
+  function projectCheckboxes() {
+    return [...projectSelectorList.querySelectorAll("input[type='checkbox']")];
+  }
+
+  function renderProjectSelector() {
+    clearChildren(projectSelectorList);
+    for (const project of currentSnapshot.projects) {
+      const label = document.createElement("label");
+      label.className = "project-option";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.value = project.name;
+      checkbox.checked = selectedProjectNames.has(project.name);
+
+      const name = document.createElement("span");
+      name.textContent = project.name;
+
+      label.append(checkbox, name);
+      projectSelectorList.append(label);
+    }
+  }
+
+  function openProjectSelector() {
+    renderProjectSelector();
+    projectSelector.showModal();
+  }
+
+  function applyProjectSelection() {
+    selectedProjectNames = new Set(projectCheckboxes()
+      .filter((checkbox) => checkbox.checked)
+      .map((checkbox) => checkbox.value));
+    saveProjectSelection(selectedProjectNames);
+    projectSelector.close();
+    updateProjectFilterButton();
+    update();
+  }
+
   function show(record, project) {
     const content = createDetailNode(record, project);
     clearChildren(modal);
@@ -442,7 +540,7 @@ function createBoardController(snapshot) {
   function update() {
     try {
       error.textContent = "";
-      currentColumns = currentSnapshot.projects.map((project) => {
+      currentColumns = selectedProjectsForSnapshot(currentSnapshot, selectedProjectNames).map((project) => {
         return filterProjectRecords(project, getTerms(search), done.checked, limit);
       });
       renderColumns();
@@ -475,11 +573,22 @@ function createBoardController(snapshot) {
     }
     done.onchange = update;
     hideEmpty.onchange = update;
+    projectFilter.onclick = openProjectSelector;
+    projectSelectAll.onclick = () => {
+      projectCheckboxes().forEach((checkbox) => { checkbox.checked = true; });
+    };
+    projectSelectNone.onclick = () => {
+      projectCheckboxes().forEach((checkbox) => { checkbox.checked = false; });
+    };
+    projectCancel.onclick = () => projectSelector.close();
+    projectApply.onclick = applyProjectSelection;
   }
 
   function setSnapshot(nextSnapshot) {
     currentSnapshot = nextSnapshot;
+    reconcileProjectSelection();
     updateLastUpdated();
+    updateProjectFilterButton();
     update();
   }
 

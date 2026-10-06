@@ -104,13 +104,60 @@ input {
   white-space: nowrap;
 }
 
-#refresh {
+#refresh,
+.icon-button,
+.project-selector-actions button,
+.project-selector-footer button {
   padding: 0.46rem 0.76rem;
   border-radius: 999px;
   border: 1px solid var(--panel-border);
   background: var(--button-bg);
   color: var(--text-main);
   cursor: pointer;
+}
+
+.icon-button {
+  display: inline-flex;
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.list-icon {
+  display: grid;
+  gap: 0.18rem;
+  width: 1.05rem;
+}
+
+.list-icon span {
+  position: relative;
+  display: block;
+  height: 0.12rem;
+  margin-left: 0.32rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.list-icon span::before {
+  content: "";
+  position: absolute;
+  left: -0.32rem;
+  top: 50%;
+  width: 0.16rem;
+  height: 0.16rem;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translateY(-50%);
+}
+
+.icon-button.is-partial {
+  border-color: var(--accent-strong);
+  background: rgba(46, 144, 250, 0.22);
+  color: #cfe0ff;
+  box-shadow: 0 0 0 2px rgba(46, 144, 250, 0.16);
 }
 
 #refresh:disabled {
@@ -176,6 +223,18 @@ input {
   display: inline-flex;
   gap: 0.9rem;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.project-summary {
+  margin: -0.25rem 0 0;
+  color: var(--text-subtle);
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.project-summary:empty {
+  display: none;
 }
 
 #error {
@@ -386,6 +445,73 @@ dialog#modal.TODO {
 
 dialog#modal.DONE {
   border-top-color: var(--done);
+}
+
+.project-selector-dialog {
+  width: min(30rem, calc(100vw - 2rem));
+  max-width: 30rem;
+  padding: 1.25rem;
+  border-top-color: var(--accent-strong);
+}
+
+.project-selector-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.project-selector-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.project-selector-header p {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+}
+
+.project-selector-actions,
+.project-selector-footer {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.project-selector-footer {
+  justify-content: flex-end;
+}
+
+#project-apply {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: white;
+}
+
+.project-selector-list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: min(45vh, 24rem);
+  overflow: auto;
+  padding: 0.2rem;
+}
+
+.project-option {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  padding: 0.62rem 0.7rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.72);
+  color: var(--text-main);
+}
+
+.project-option input {
+  margin-top: 0.22rem;
+  flex: 0 0 auto;
+}
+
+.project-option span {
+  overflow-wrap: anywhere;
 }
 
 dialog[open] {
@@ -630,6 +756,11 @@ code {
 
   .toggle-group {
     gap: 0.55rem;
+  }
+
+  .icon-button {
+    width: 1.9rem;
+    height: 1.9rem;
   }
 
   dialog {

@@ -30,8 +30,10 @@
         <div class="toggle-group">
           <label class="toggle"><input id="hide-empty" type="checkbox" checked> Hide empty projects</label>
           <label class="toggle"><input id="done" type="checkbox"> Show completed items</label>
+          <button id="project-filter" class="icon-button" type="button" aria-label="Select projects" title="Showing all projects"><span class="list-icon" aria-hidden="true"><span></span><span></span><span></span></span></button>
         </div>
       </div>
+      <p id="project-summary" class="project-summary"></p>
       <p id="error" role="alert"></p>
     </div>
     <div class="board-chrome">
@@ -42,6 +44,23 @@
     </div>
   </main>
   <dialog id="modal"></dialog>
+  <dialog id="project-selector" class="project-selector-dialog">
+    <form method="dialog" class="project-selector-form">
+      <header class="project-selector-header">
+        <h2>Display Projects</h2>
+        <p>Select which project columns appear on the dashboard.</p>
+      </header>
+      <div class="project-selector-actions" aria-label="Bulk project selection">
+        <button id="project-select-all" type="button">Select all</button>
+        <button id="project-select-none" type="button">Select none</button>
+      </div>
+      <div id="project-selector-list" class="project-selector-list"></div>
+      <footer class="project-selector-footer">
+        <button id="project-cancel" type="button">Cancel</button>
+        <button id="project-apply" type="button">Apply</button>
+      </footer>
+    </form>
+  </dialog>
   <template id="template-column">
     <section class="column">
       <h2 class="column-title"></h2>
